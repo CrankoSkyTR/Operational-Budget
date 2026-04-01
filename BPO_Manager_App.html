@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BPO Manager — Operational Budget Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy:     #0f1f3d;
+    --navy2:    #1a3060;
+    --blue:     #2563eb;
+    --blue-lt:  #3b82f6;
+    --cyan:     #06b6d4;
+    --teal:     #0d9488;
+    --green:    #059669;
+    --red:      #dc2626;
+    --amber:    #d97706;
+    --gold:     #f59e0b;
+    --ivory:    #fafaf7;
+    --surface:  #ffffff;
+    --gray-50:  #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-400: #9ca3af;
+    --gray-600: #4b5563;
+    --gray-800: #1f2937;
+    --shadow:   0 4px 24px rgba(15,31,61,.10);
+    --shadow-lg:0 8px 40px rgba(15,31,61,.18);
+    --radius:   12px;
+    --font-head:"DM Serif Display", serif;
+    --font-body:"DM Sans", sans-serif;
+    --font-mono:"JetBrains Mono", monospace;
+    --trans: .2s cubic-bezier(.4,0,.2,1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font-body); background: var(--gray-50); color: var(--gray-800); min-height: 100vh; }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 50%, #1e3a6e 100%);
+    position:relative; overflow:hidden;
+  }
+  #login-screen::before {
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(37,99,235,.25) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(6,182,212,.15) 0%, transparent 50%);
+  }
+  .login-card {
+    position:relative; z-index:2; background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.12); border-radius:20px;
+    padding:48px 44px; width:420px; backdrop-filter:blur(20px);
+    box-shadow: 0 32px 80px rgba(0,0,0,.4);
+  }
+  .login-logo { text-align:center; margin-bottom:32px; }
+  .login-logo .brand { font-family:var(--font-head); font-size:32px; color:#fff; letter-spacing:-.5px; }
+  .login-logo .sub { font-size:12px; color:rgba(255,255,255,.5); letter-spacing:3px; text-transform:uppercase; margin-top:4px; }
+  .login-divider { height:1px; background:rgba(255,255,255,.1); margin:24px 0; }
+  .form-group { margin-bottom:18px; }
+  .form-group label { display:block; font-size:12px; font-weight:600; color:rgba(255,255,255,.6); letter-spacing:.8px; text-transform:uppercase; margin-bottom:8px; }
+  .form-group input {
+    width:100%; padding:13px 16px; border-radius:10px;
+    border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.07);
+    color:#fff; font-family:var(--font-body); font-size:14px; outline:none;
+    transition: border-color var(--trans), background var(--trans);
+  }
+  .form-group input::placeholder { color:rgba(255,255,255,.3); }
+  .form-group input:focus { border-color:var(--blue-lt); background:rgba(255,255,255,.10); }
+  .btn-login {
+    width:100%; padding:14px; border-radius:10px; border:none;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    color:#fff; font-family:var(--font-body); font-weight:600; font-size:15px;
+    cursor:pointer; transition:opacity var(--trans), transform var(--trans);
+    letter-spacing:.3px;
+  }
+  .btn-login:hover { opacity:.9; transform:translateY(-1px); }
+  .login-error { color:#f87171; font-size:13px; text-align:center; margin-top:12px; min-height:20px; }
+  .login-gdpr { margin-top:24px; padding:14px 16px; border-radius:8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); }
+  .login-gdpr p { font-size:11px; color:rgba(255,255,255,.4); line-height:1.7; }
+  .login-gdpr strong { color:rgba(255,255,255,.6); }
+  .setup-link { text-align:center; margin-top:16px; }
+  .setup-link a { color:var(--cyan); font-size:13px; text-decoration:none; opacity:.8; }
+  .setup-link a:hover { opacity:1; }
+
+  /* ── LAYOUT ── */
+  #app { display:none; min-height:100vh; }
+  .sidebar {
+    position:fixed; top:0; left:0; bottom:0; width:240px;
+    background:var(--navy); display:flex; flex-direction:column;
+    padding:0; z-index:100; box-shadow: 4px 0 20px rgba(0,0,0,.2);
+  }
+  .sidebar-brand {
+    padding:24px 20px 20px; border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .sidebar-brand .brand { font-family:var(--font-head); font-size:22px; color:#fff; }
+  .sidebar-brand .sub { font-size:10px; color:rgba(255,255,255,.4); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+  .sidebar-nav { flex:1; padding:16px 12px; overflow-y:auto; }
+  .nav-section { font-size:10px; font-weight:700; color:rgba(255,255,255,.3); letter-spacing:1.5px; text-transform:uppercase; padding:12px 8px 6px; }
+  .nav-item {
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px;
+    color:rgba(255,255,255,.6); font-size:14px; font-weight:500; cursor:pointer;
+    transition:all var(--trans); margin-bottom:2px; user-select:none;
+  }
+  .nav-item:hover { background:rgba(255,255,255,.07); color:#fff; }
+  .nav-item.active { background:rgba(37,99,235,.3); color:#fff; border-left:3px solid var(--blue-lt); }
+  .nav-item .icon { font-size:16px; width:20px; text-align:center; }
+  .sidebar-user {
+    padding:16px 20px; border-top:1px solid rgba(255,255,255,.08);
+    display:flex; align-items:center; gap:10px;
+  }
+  .user-avatar {
+    width:34px; height:34px; border-radius:50%;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:700; font-size:13px; flex-shrink:0;
+  }
+  .user-info .name { color:#fff; font-size:13px; font-weight:600; }
+  .user-info .role { color:rgba(255,255,255,.4); font-size:11px; }
+  .btn-logout { margin-left:auto; background:none; border:none; color:rgba(255,255,255,.4); cursor:pointer; font-size:16px; }
+  .btn-logout:hover { color:#f87171; }
+
+  .main { margin-left:240px; min-height:100vh; }
+  .topbar {
+    background:var(--surface); border-bottom:1px solid var(--gray-200);
+    padding:0 32px; height:64px; display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:50; box-shadow:0 1px 4px rgba(0,0,0,.06);
+  }
+  .topbar-title { font-family:var(--font-head); font-size:22px; color:var(--navy); }
+  .topbar-right { display:flex; align-items:center; gap:12px; }
+  .badge { padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
+  .badge-admin { background:#fef3c7; color:#92400e; }
+  .badge-user  { background:#dbeafe; color:#1e40af; }
+
+  .content { padding:32px; }
+  .page { display:none; }
+  .page.active { display:block; animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+  /* ── CARDS & KPIs ── */
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:28px; }
+  .kpi-card {
+    background:var(--surface); border-radius:var(--radius);
+    padding:20px 22px; box-shadow:var(--shadow);
+    border-top:3px solid transparent; position:relative; overflow:hidden;
+  }
+  .kpi-card.blue  { border-top-color:var(--blue); }
+  .kpi-card.green { border-top-color:var(--green); }
+  .kpi-card.amber { border-top-color:var(--amber); }
+  .kpi-card.teal  { border-top-color:var(--teal); }
+  .kpi-card.red   { border-top-color:var(--red); }
+  .kpi-label { font-size:11px; font-weight:700; color:var(--gray-400); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+  .kpi-value { font-family:var(--font-mono); font-size:26px; font-weight:500; color:var(--navy); line-height:1; }
+  .kpi-sub { font-size:12px; color:var(--gray-400); margin-top:6px; }
+  .kpi-delta { font-size:13px; font-weight:600; }
+  .kpi-delta.pos { color:var(--green); } .kpi-delta.neg { color:var(--red); }
+
+  .card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:20px; }
+  .card-title { font-family:var(--font-head); font-size:18px; color:var(--navy); margin-bottom:4px; }
+  .card-subtitle { font-size:12px; color:var(--gray-400); margin-bottom:20px; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead th { background:var(--navy); color:#fff; padding:10px 14px; text-align:left; font-weight:600; font-size:11px; letter-spacing:.7px; text-transform:uppercase; }
+  thead th:first-child { border-radius:8px 0 0 0; }
+  thead th:last-child  { border-radius:0 8px 0 0; }
+  tbody tr { border-bottom:1px solid var(--gray-100); transition:background var(--trans); }
+  tbody tr:hover { background:var(--gray-50); }
+  tbody td { padding:10px 14px; color:var(--gray-800); }
+  tbody td.mono { font-family:var(--font-mono); font-size:12px; }
+  tbody td.pos { color:var(--green); font-weight:600; }
+  tbody td.neg { color:var(--red); font-weight:600; }
+  .cat-row td { background:var(--gray-50); font-weight:700; font-size:12px; color:var(--navy2); letter-spacing:.5px; text-transform:uppercase; }
+  .total-row td { background:var(--navy); color:#fff; font-weight:700; font-family:var(--font-mono); }
+
+  /* ── FORMS ── */
+  .form-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:16px; }
+  .field label { display:block; font-size:12px; font-weight:600; color:var(--gray-600); margin-bottom:6px; letter-spacing:.5px; text-transform:uppercase; }
+  .field input, .field select, .field textarea {
+    width:100%; padding:10px 13px; border:1.5px solid var(--gray-200); border-radius:8px;
+    font-family:var(--font-body); font-size:14px; color:var(--gray-800); outline:none;
+    transition:border-color var(--trans);
+  }
+  .field input:focus, .field select:focus { border-color:var(--blue); }
+  .field textarea { resize:vertical; min-height:80px; }
+  .btn { padding:10px 20px; border-radius:8px; border:none; font-family:var(--font-body); font-weight:600; font-size:14px; cursor:pointer; transition:all var(--trans); }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:hover { background:#1d4ed8; transform:translateY(-1px); }
+  .btn-danger  { background:var(--red); color:#fff; }
+  .btn-danger:hover { background:#b91c1c; }
+  .btn-ghost { background:transparent; border:1.5px solid var(--gray-200); color:var(--gray-600); }
+  .btn-ghost:hover { border-color:var(--blue); color:var(--blue); }
+  .btn-sm { padding:6px 14px; font-size:12px; }
+  .btn-group { display:flex; gap:10px; flex-wrap:wrap; }
+
+  /* ── ADMIN ── */
+  .admin-banner {
+    background:linear-gradient(135deg,var(--navy),var(--navy2));
+    border-radius:var(--radius); padding:20px 24px; margin-bottom:20px;
+    display:flex; align-items:center; gap:16px; color:#fff;
+  }
+  .admin-icon { font-size:32px; }
+  .admin-banner h2 { font-family:var(--font-head); font-size:20px; }
+  .admin-banner p { font-size:13px; color:rgba(255,255,255,.6); margin-top:2px; }
+  .role-select { padding:4px 10px; border-radius:6px; border:1px solid var(--gray-200); font-size:12px; }
+
+  /* ── GDPR NOTICE ── */
+  .gdpr-banner {
+    background:#fffbeb; border:1px solid #fcd34d; border-radius:10px;
+    padding:14px 18px; display:flex; gap:12px; align-items:flex-start; margin-bottom:20px;
+  }
+  .gdpr-banner .icon { font-size:20px; flex-shrink:0; margin-top:1px; }
+  .gdpr-banner p { font-size:12px; color:#92400e; line-height:1.7; }
+
+  /* ── SETUP MODAL ── */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(15,31,61,.7); z-index:200;
+    display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);
+  }
+  .modal { background:#fff; border-radius:16px; padding:36px; width:560px; max-width:95vw; box-shadow:var(--shadow-lg); }
+  .modal h2 { font-family:var(--font-head); font-size:22px; color:var(--navy); margin-bottom:6px; }
+  .modal p { font-size:13px; color:var(--gray-600); margin-bottom:20px; line-height:1.7; }
+  .modal pre { background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; padding:14px; font-family:var(--font-mono); font-size:12px; white-space:pre-wrap; word-break:break-all; margin-bottom:16px; }
+  .modal-close { float:right; background:none; border:none; font-size:20px; cursor:pointer; color:var(--gray-400); }
+
+  /* ── CHART ── */
+  .chart-wrap { position:relative; height:260px; }
+
+  /* ── TABS ── */
+  .tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:2px solid var(--gray-200); }
+  .tab-btn { padding:10px 18px; border:none; background:none; font-family:var(--font-body); font-size:14px; font-weight:500; color:var(--gray-400); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all var(--trans); }
+  .tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
+  .tab-btn:hover { color:var(--navy); }
+
+  /* ── NOTIFICATION ── */
+  .toast {
+    position:fixed; bottom:24px; right:24px; padding:14px 20px; border-radius:10px;
+    background:var(--navy); color:#fff; font-size:14px; font-weight:500;
+    box-shadow:var(--shadow-lg); z-index:999; transform:translateY(100px); opacity:0;
+    transition:all .3s ease;
+  }
+  .toast.show { transform:none; opacity:1; }
+  .toast.success { background:var(--green); }
+  .toast.error   { background:var(--red); }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:768px) {
+    .sidebar { transform:translateX(-100%); }
+    .main { margin-left:0; }
+    .grid-2,.grid-3 { grid-template-columns:1fr; }
+  }
+
+  /* Loading shimmer */
+  .shimmer { background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-50) 50%,var(--gray-100) 75%); background-size:400% 100%; animation:shimmer 1.5s infinite; border-radius:6px; }
+  @keyframes shimmer { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+</style>
+</head>
+<body>
+
+<!-- ── SETUP MODAL ── -->
+<div class="modal-overlay" id="setup-modal" style="display:none">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('setup-modal').style.display='none'">✕</button>
+    <h2>🚀 Supabase Setup Guide</h2>
+    <p>This app requires a <strong>Supabase</strong> project. Follow these steps to connect it.</p>
+    <p><strong>Step 1.</strong> Create a free project at <a href="https://supabase.com" target="_blank" style="color:var(--blue)">supabase.com</a></p>
+    <p><strong>Step 2.</strong> Run this SQL in your Supabase SQL Editor to create tables:</p>
+    <pre>-- Enable UUID
+create extension if not exists "uuid-ossp";
+
+-- Profiles (extends auth.users)
+create table public.profiles (
+  id uuid references auth.users on delete cascade primary key,
+  full_name text,
+  role text default 'viewer' check (role in ('admin','editor','viewer')),
+  created_at timestamptz default now()
+);
+alter table profiles enable row level security;
+create policy "Users can read own profile" on profiles for select using (auth.uid() = id);
+create policy "Admins can manage all profiles" on profiles for all using (
+  exists(select 1 from profiles p where p.id=auth.uid() and p.role='admin')
+);
+
+-- Budget entries
+create table public.budget_entries (
+  id uuid default uuid_generate_v4() primary key,
+  year int not null default extract(year from now())::int,
+  category text not null,
+  subcategory text not null,
+  budget_amount numeric(14,2) default 0,
+  actual_amount numeric(14,2) default 0,
+  entry_type text default 'cost' check(entry_type in ('revenue','cost')),
+  notes text,
+  created_by uuid references auth.users,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table budget_entries enable row level security;
+create policy "Authenticated users read" on budget_entries for select to authenticated using (true);
+create policy "Editors and admins write" on budget_entries for all to authenticated using (
+  exists(select 1 from profiles p where p.id=auth.uid() and p.role in ('admin','editor'))
+);
+
+-- Trigger: auto-create profile on signup
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer as $$
+begin
+  insert into public.profiles(id, full_name, role)
+  values(new.id, new.raw_user_meta_data->>'full_name', 'viewer');
+  return new;
+end;
+$$;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users
+  for each row execute procedure public.handle_new_user();</pre>
+    <p><strong>Step 3.</strong> Enter your Supabase URL and anon key below, then reload.</p>
+    <div class="form-row">
+      <div class="field"><label>Supabase URL</label><input id="setup-url" placeholder="https://xxx.supabase.co"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Anon Key</label><input id="setup-key" placeholder="eyJhbGci..."></div>
+    </div>
+    <p style="font-size:12px;color:var(--gray-400);margin-top:4px">⚠️ GDPR note: These credentials are stored in your browser's localStorage only. No data is sent to any third party. The anon key is safe to use client-side as Row-Level Security (RLS) protects your data.</p>
+    <div class="btn-group" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="saveSetup()">Save & Connect</button>
+      <button class="btn btn-ghost" onclick="useDemoMode()">Use Demo Mode (no DB)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="brand">BPO Manager</div>
+      <div class="sub">Operational Budget Platform</div>
+    </div>
+    <div class="login-divider"></div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="login-email" placeholder="you@company.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Sign In →</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-gdpr">
+      <p><strong>🔒 Privacy & GDPR</strong><br>
+      This application is a personal/internal tool. Your login is processed via Supabase Auth using industry-standard encryption. No personal data is shared with third parties. Session tokens are stored locally in your browser only.</p>
+    </div>
+    <div class="setup-link">
+      <a href="#" onclick="showSetup()">⚙ Configure Supabase Connection</a>
+      &nbsp;·&nbsp;
+      <a href="#" onclick="useDemoMode()">Demo Mode</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand">BPO</div>
+      <div class="sub">Budget Manager</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <span class="icon">📊</span> Dashboard
+      </div>
+      <div class="nav-section">Budget</div>
+      <div class="nav-item" onclick="showPage('budget')">
+        <span class="icon">📋</span> Budget vs Actual
+      </div>
+      <div class="nav-item" onclick="showPage('cost-split')">
+        <span class="icon">🥧</span> Cost Split
+      </div>
+      <div class="nav-item" onclick="showPage('monthly')">
+        <span class="icon">📅</span> Monthly Plan
+      </div>
+      <div class="nav-section" id="nav-admin-section" style="display:none">Admin</div>
+      <div class="nav-item" id="nav-users" style="display:none" onclick="showPage('users')">
+        <span class="icon">👥</span> User Management
+      </div>
+      <div class="nav-item" id="nav-settings" style="display:none" onclick="showPage('settings')">
+        <span class="icon">⚙</span> Settings
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div class="user-info">
+        <div class="name" id="user-name">User</div>
+        <div class="role" id="user-role">viewer</div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()" title="Sign out">⏻</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-right">
+        <span class="badge" id="role-badge">viewer</span>
+        <span style="font-size:12px;color:var(--gray-400)" id="fiscal-year">FY 2025</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="gdpr-banner">
+          <div class="icon">🛡</div>
+          <p><strong>GDPR Notice:</strong> This platform stores operational budget data only — no personal employee data (names, salaries per person). All data is stored in your private Supabase instance with Row-Level Security. You are the data controller.</p>
+        </div>
+        <div class="kpi-grid" id="kpi-grid">
+          <div class="kpi-card blue"><div class="kpi-label">Budget Revenue</div><div class="kpi-value" id="k-brev">—</div></div>
+          <div class="kpi-card teal"><div class="kpi-label">Actual Revenue</div><div class="kpi-value" id="k-arev">—</div></div>
+          <div class="kpi-card amber"><div class="kpi-label">Budget Cost</div><div class="kpi-value" id="k-bcost">—</div></div>
+          <div class="kpi-card red"><div class="kpi-label">Actual Cost</div><div class="kpi-value" id="k-acost">—</div></div>
+          <div class="kpi-card green"><div class="kpi-label">Gross Margin</div><div class="kpi-value" id="k-gm">—</div><div class="kpi-sub" id="k-gmpct">—</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Revenue vs Cost</div>
+            <div class="card-subtitle">Budget vs Actual comparison</div>
+            <div class="chart-wrap"><canvas id="chart-revcos"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Cost Split</div>
+            <div class="card-subtitle">Actual cost by category</div>
+            <div class="chart-wrap"><canvas id="chart-costsplit"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BUDGET vs ACTUAL -->
+      <div class="page" id="page-budget">
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('revenue')">Revenue</button>
+          <button class="tab-btn" onclick="switchTab('cost')">Costs</button>
+          <button class="tab-btn" onclick="switchTab('gm')">Gross Margin</button>
+        </div>
+        <div id="tab-revenue">
+          <div class="card">
+            <div class="card-title">Revenue Entries</div>
+            <div class="card-subtitle">Enter budget and actual income figures</div>
+            <div id="revenue-editor"></div>
+            <div class="btn-group" style="margin-top:16px" id="rev-add-btn"></div>
+          </div>
+        </div>
+        <div id="tab-cost" style="display:none">
+          <div class="card">
+            <div class="card-title">Cost Entries — Split View</div>
+            <div class="card-subtitle">Salary, Bonus, Sales Commissions, Operations, and more</div>
+            <div id="cost-editor"></div>
+            <div class="btn-group" style="margin-top:16px" id="cost-add-btn"></div>
+          </div>
+        </div>
+        <div id="tab-gm" style="display:none">
+          <div class="card">
+            <div class="card-title">Gross Margin Analysis</div>
+            <div class="card-subtitle">Calculated from Revenue − Total Costs</div>
+            <div id="gm-table"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COST SPLIT -->
+      <div class="page" id="page-cost-split">
+        <div class="card">
+          <div class="card-title">Cost Split — Category Breakdown</div>
+          <div class="card-subtitle">Budget vs Actual per category · % share of total</div>
+          <div class="table-wrap" id="cost-split-table"></div>
+        </div>
+      </div>
+
+      <!-- MONTHLY -->
+      <div class="page" id="page-monthly">
+        <div class="card">
+          <div class="card-title">Monthly Plan</div>
+          <div class="card-subtitle">Revenue & Cost by month with rolling GM%</div>
+          <div class="table-wrap" id="monthly-table"></div>
+        </div>
+      </div>
+
+      <!-- USERS (admin) -->
+      <div class="page" id="page-users">
+        <div class="admin-banner">
+          <div class="admin-icon">👑</div>
+          <div>
+            <h2>User Management</h2>
+            <p>Admin console — manage accounts, roles and access. Only admins can see this page.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Invite New User</div>
+          <div class="card-subtitle">Send invitation email via Supabase Auth</div>
+          <div class="form-row">
+            <div class="field"><label>Full Name</label><input id="inv-name" placeholder="Jane Smith"></div>
+            <div class="field"><label>Email</label><input type="email" id="inv-email" placeholder="jane@company.com"></div>
+            <div class="field"><label>Role</label>
+              <select id="inv-role">
+                <option value="viewer">Viewer — read only</option>
+                <option value="editor">Editor — can edit budgets</option>
+                <option value="admin">Admin — full access</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="inviteUser()">Send Invitation</button>
+        </div>
+        <div class="card">
+          <div class="card-title">All Users</div>
+          <div class="table-wrap" id="users-table"><p style="color:var(--gray-400);font-size:13px">Loading users...</p></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="card">
+          <div class="card-title">Application Settings</div>
+          <div class="card-subtitle">Fiscal year, currency, and display preferences</div>
+          <div class="form-row">
+            <div class="field"><label>Fiscal Year</label>
+              <select id="set-year" onchange="setFY(this.value)">
+                <option value="2024">2024</option>
+                <option value="2025" selected>2025</option>
+                <option value="2026">2026</option>
+              </select>
+            </div>
+            <div class="field"><label>Currency</label>
+              <select id="set-currency">
+                <option value="EUR" selected>EUR (€)</option>
+                <option value="USD">USD ($)</option>
+                <option value="GBP">GBP (£)</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+        </div>
+        <div class="card">
+          <div class="card-title">GDPR & Data Privacy</div>
+          <div class="card-subtitle">Your data rights and compliance information</div>
+          <div style="font-size:13px;color:var(--gray-600);line-height:1.9">
+            <p>🛡 <strong>Data controller:</strong> You, as the operator of this Supabase instance.</p>
+            <p>🔒 <strong>Data storage:</strong> Your Supabase project (EU region recommended for GDPR).</p>
+            <p>👤 <strong>Personal data:</strong> Only email addresses (for auth) and names you enter. No sensitive personal data (HR records, individual salaries) should be stored here.</p>
+            <p>🗑 <strong>Right to erasure:</strong> Delete your Supabase project at any time. Email and profile data can be removed from the Supabase Auth dashboard.</p>
+            <p>📤 <strong>Data export:</strong> Use Supabase table exports (CSV) for portability.</p>
+            <p>🔑 <strong>Access control:</strong> Row-Level Security ensures users only see what they are authorised to see.</p>
+            <p>⚠️ <strong>Note:</strong> This is not a company-managed tool. Ensure you have a Data Processing Agreement with Supabase if processing EU personal data.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIG & STATE
+// ═══════════════════════════════════════════
+let supabase = null;
+let currentUser = null;
+let userProfile = null;
+let demoMode = false;
+let currentFY = 2025;
+
+const COST_CATEGORIES = {
+  "Personnel Costs": ["Base Salary", "Bonus / Incentives", "Social Contributions", "Pension", "Training"],
+  "Sales & Marketing": ["Sales Commissions", "Marketing Campaigns", "Events", "CRM Tools"],
+  "Operations":       ["Rent & Facilities", "IT Infrastructure", "Software Licenses", "Insurance"],
+  "Finance & Admin":  ["Accounting", "Legal Fees", "Bank Charges", "Miscellaneous"],
+  "Depreciation":     ["Equipment", "Intangibles"],
+};
+const REVENUE_CATS = ["Product Sales", "Recurring Revenue", "Project Revenue", "Other Revenue"];
+
+// Demo data
+let demoEntries = [
+  {id:'r1', year:2025, category:'Revenue', subcategory:'Product Sales',    budget_amount:500000, actual_amount:480000, entry_type:'revenue'},
+  {id:'r2', year:2025, category:'Revenue', subcategory:'Recurring Revenue', budget_amount:120000, actual_amount:125000, entry_type:'revenue'},
+  {id:'r3', year:2025, category:'Revenue', subcategory:'Project Revenue',   budget_amount:80000,  actual_amount:75000,  entry_type:'revenue'},
+  {id:'c1', year:2025, category:'Personnel Costs',  subcategory:'Base Salary',         budget_amount:220000, actual_amount:225000, entry_type:'cost'},
+  {id:'c2', year:2025, category:'Personnel Costs',  subcategory:'Bonus / Incentives',  budget_amount:30000,  actual_amount:28000,  entry_type:'cost'},
+  {id:'c3', year:2025, category:'Personnel Costs',  subcategory:'Social Contributions',budget_amount:44000,  actual_amount:45500,  entry_type:'cost'},
+  {id:'c4', year:2025, category:'Sales & Marketing',subcategory:'Sales Commissions',   budget_amount:25000,  actual_amount:27000,  entry_type:'cost'},
+  {id:'c5', year:2025, category:'Sales & Marketing',subcategory:'Marketing Campaigns', budget_amount:18000,  actual_amount:15000,  entry_type:'cost'},
+  {id:'c6', year:2025, category:'Operations',       subcategory:'Rent & Facilities',   budget_amount:36000,  actual_amount:36000,  entry_type:'cost'},
+  {id:'c7', year:2025, category:'Operations',       subcategory:'IT Infrastructure',   budget_amount:15000,  actual_amount:14200,  entry_type:'cost'},
+  {id:'c8', year:2025, category:'Finance & Admin',  subcategory:'Accounting',          budget_amount:10000,  actual_amount:10000,  entry_type:'cost'},
+  {id:'c9', year:2025, category:'Depreciation',     subcategory:'Equipment',           budget_amount:8000,   actual_amount:8000,   entry_type:'cost'},
+];
+
+// ═══════════════════════════════════════════
+// SUPABASE INIT
+// ═══════════════════════════════════════════
+function initSupabase() {
+  const url = localStorage.getItem('bpo_sb_url');
+  const key = localStorage.getItem('bpo_sb_key');
+  if (url && key) {
+    supabase = window.supabase.createClient(url, key);
+    return true;
+  }
+  return false;
+}
+
+function saveSetup() {
+  const url = document.getElementById('setup-url').value.trim();
+  const key = document.getElementById('setup-key').value.trim();
+  if (!url || !key) { showToast('Please enter both URL and Key', 'error'); return; }
+  localStorage.setItem('bpo_sb_url', url);
+  localStorage.setItem('bpo_sb_key', key);
+  document.getElementById('setup-modal').style.display = 'none';
+  showToast('Supabase connected! You can now log in.', 'success');
+  initSupabase();
+}
+
+function showSetup() { document.getElementById('setup-modal').style.display = 'flex'; }
+
+function useDemoMode() {
+  demoMode = true;
+  document.getElementById('setup-modal').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'none';
+  currentUser = { id: 'demo', email: 'admin@demo.local' };
+  userProfile = { full_name: 'Demo Admin', role: 'admin' };
+  bootApp();
+}
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  // Demo shortcut
+  if (email === 'demo' || email === 'demo@demo.com') { useDemoMode(); return; }
+
+  if (!supabase) {
+    if (!initSupabase()) {
+      errEl.textContent = 'Supabase not configured. Click "Configure" below or use Demo Mode.';
+      return;
+    }
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+  if (error) { errEl.textContent = error.message; return; }
+  currentUser = data.user;
+  await loadProfile();
+  document.getElementById('login-screen').style.display = 'none';
+  bootApp();
+}
+
+async function loadProfile() {
+  if (demoMode) return;
+  const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+  userProfile = data || { full_name: currentUser.email, role: 'viewer' };
+}
+
+async function doLogout() {
+  if (!demoMode) await supabase.auth.signOut();
+  location.reload();
+}
+
+// ═══════════════════════════════════════════
+// APP BOOT
+// ═══════════════════════════════════════════
+function bootApp() {
+  document.getElementById('app').style.display = 'block';
+  const name  = userProfile?.full_name || currentUser?.email || 'User';
+  const role  = userProfile?.role || 'viewer';
+  document.getElementById('user-name').textContent = name.split('@')[0];
+  document.getElementById('user-role').textContent = role;
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  const badge = document.getElementById('role-badge');
+  badge.textContent = role;
+  badge.className = 'badge ' + (role === 'admin' ? 'badge-admin' : 'badge-user');
+
+  if (role === 'admin') {
+    document.getElementById('nav-admin-section').style.display = '';
+    document.getElementById('nav-users').style.display = '';
+    document.getElementById('nav-settings').style.display = '';
+  }
+
+  loadDashboard();
+  renderBudgetPage();
+  renderCostSplitPage();
+  renderMonthlyPage();
+  if (role === 'admin') loadUsers();
+}
+
+// ═══════════════════════════════════════════
+// DATA LAYER
+// ═══════════════════════════════════════════
+async function getEntries(type) {
+  if (demoMode) return demoEntries.filter(e => e.entry_type === type && e.year === currentFY);
+  const { data } = await supabase.from('budget_entries')
+    .select('*').eq('entry_type', type).eq('year', currentFY);
+  return data || [];
+}
+
+async function getAllEntries() {
+  if (demoMode) return demoEntries.filter(e => e.year === currentFY);
+  const { data } = await supabase.from('budget_entries').select('*').eq('year', currentFY);
+  return data || [];
+}
+
+async function upsertEntry(entry) {
+  if (demoMode) {
+    const idx = demoEntries.findIndex(e => e.id === entry.id);
+    if (idx >= 0) demoEntries[idx] = entry; else demoEntries.push(entry);
+    return;
+  }
+  await supabase.from('budget_entries').upsert(entry);
+}
+
+async function deleteEntry(id) {
+  if (demoMode) { demoEntries = demoEntries.filter(e => e.id !== id); return; }
+  await supabase.from('budget_entries').delete().eq('id', id);
+}
+
+// ═══════════════════════════════════════════
+// FORMATTERS
+// ═══════════════════════════════════════════
+const fmt = n => (n==null||isNaN(n)) ? '—' : new Intl.NumberFormat('en-EU',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
+const pct = n => (n==null||isNaN(n)) ? '—' : (n*100).toFixed(1)+'%';
+const varClass = n => n >= 0 ? 'pos' : 'neg';
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+let chartRC = null, chartCS = null;
+
+async function loadDashboard() {
+  const entries = await getAllEntries();
+  const rev  = entries.filter(e => e.entry_type === 'revenue');
+  const cost = entries.filter(e => e.entry_type === 'cost');
+  const sumB = arr => arr.reduce((s,e) => s + (+e.budget_amount||0), 0);
+  const sumA = arr => arr.reduce((s,e) => s + (+e.actual_amount||0), 0);
+
+  const bRev  = sumB(rev),  aRev  = sumA(rev);
+  const bCost = sumB(cost), aCost = sumA(cost);
+  const gm    = aRev - aCost;
+  const gmPct = aRev ? gm / aRev : 0;
+
+  document.getElementById('k-brev').textContent  = fmt(bRev);
+  document.getElementById('k-arev').textContent  = fmt(aRev);
+  document.getElementById('k-bcost').textContent = fmt(bCost);
+  document.getElementById('k-acost').textContent = fmt(aCost);
+  document.getElementById('k-gm').textContent    = fmt(gm);
+  document.getElementById('k-gmpct').textContent = 'GM% ' + pct(gmPct);
+
+  // Chart 1
+  if (chartRC) chartRC.destroy();
+  chartRC = new Chart(document.getElementById('chart-revcos'), {
+    type: 'bar',
+    data: {
+      labels: ['Budget Revenue','Actual Revenue','Budget Cost','Actual Cost'],
+      datasets: [{
+        data: [bRev, aRev, bCost, aCost],
+        backgroundColor: ['#3b82f6','#06b6d4','#f59e0b','#dc2626'],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: v => '€'+Math.round(v/1000)+'k' }, grid: { color: '#f3f4f6' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Chart 2 — cost split
+  const cats = Object.keys(COST_CATEGORIES);
+  const catTotals = cats.map(cat => {
+    return cost.filter(e => e.category === cat).reduce((s,e) => s + (+e.actual_amount||0), 0);
+  }).filter(v => v > 0);
+  const catLabels = cats.filter((cat) => {
+    return cost.filter(e => e.category === cat).reduce((s,e) => s + (+e.actual_amount||0), 0) > 0;
+  });
+
+  if (chartCS) chartCS.destroy();
+  chartCS = new Chart(document.getElementById('chart-costsplit'), {
+    type: 'doughnut',
+    data: {
+      labels: catLabels,
+      datasets: [{ data: catTotals, backgroundColor: ['#1a3060','#2563eb','#06b6d4','#0d9488','#f59e0b'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } },
+        tooltip: { callbacks: { label: ctx => ctx.label+': '+fmt(ctx.raw) } }
+      },
+      cutout: '60%'
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// BUDGET PAGE
+// ═══════════════════════════════════════════
+let currentTab = 'revenue';
+
+function switchTab(tab) {
+  currentTab = tab;
+  ['revenue','cost','gm'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? '' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['revenue','cost','gm'][i] === tab);
+  });
+  if (tab === 'gm') renderGM();
+}
+
+async function renderBudgetPage() {
+  renderRevenueEditor();
+  renderCostEditor();
+}
+
+async function renderRevenueEditor() {
+  const entries = await getEntries('revenue');
+  const canEdit = userProfile?.role !== 'viewer';
+  const container = document.getElementById('revenue-editor');
+  if (!entries.length && canEdit) {
+    container.innerHTML = '<p style="color:var(--gray-400);font-size:13px;margin-bottom:8px">No revenue entries yet. Add one below.</p>';
+  } else {
+    let html = `<div class="table-wrap"><table>
+      <thead><tr><th>Category</th><th>Budget (€)</th><th>Actual (€)</th><th>Variance</th>${canEdit?'<th>Actions</th>':''}</tr></thead><tbody>`;
+    let totB = 0, totA = 0;
+    for (const e of entries) {
+      const v = (+e.actual_amount||0) - (+e.budget_amount||0);
+      totB += +e.budget_amount||0; totA += +e.actual_amount||0;
+      html += `<tr>
+        <td>${e.subcategory}</td>
+        <td class="mono">${fmt(+e.budget_amount)}</td>
+        <td class="mono">${fmt(+e.actual_amount)}</td>
+        <td class="mono ${varClass(v)}">${fmt(v)}</td>
+        ${canEdit ? `<td><button class="btn btn-ghost btn-sm" onclick="editEntry('${e.id}','revenue')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="removeEntry('${e.id}','revenue')">✕</button></td>` : ''}
+      </tr>`;
+    }
+    const totV = totA - totB;
+    html += `</tbody><tfoot><tr class="total-row"><td>TOTAL</td><td class="mono">${fmt(totB)}</td><td class="mono">${fmt(totA)}</td><td class="mono ${varClass(totV)}">${fmt(totV)}</td>${canEdit?'<td></td>':''}</tr></tfoot></table></div>`;
+    container.innerHTML = html;
+  }
+  const addBtn = document.getElementById('rev-add-btn');
+  if (canEdit) {
+    addBtn.innerHTML = `<button class="btn btn-primary" onclick="addEntry('revenue')">+ Add Revenue Entry</button>`;
+  }
+}
+
+async function renderCostEditor() {
+  const entries = await getEntries('cost');
+  const canEdit = userProfile?.role !== 'viewer';
+  const container = document.getElementById('cost-editor');
+  let html = `<div class="table-wrap"><table>
+    <thead><tr><th>Category</th><th>Subcategory</th><th>Budget (€)</th><th>Actual (€)</th><th>Variance</th>${canEdit?'<th>Actions</th>':''}</tr></thead><tbody>`;
+  let grandB = 0, grandA = 0;
+  for (const [cat, subs] of Object.entries(COST_CATEGORIES)) {
+    const catEntries = entries.filter(e => e.category === cat);
+    if (!catEntries.length) continue;
+    let catB = 0, catA = 0;
+    html += `<tr class="cat-row"><td colspan="${canEdit?6:5}">${cat}</td></tr>`;
+    for (const e of catEntries) {
+      const v = (+e.actual_amount||0) - (+e.budget_amount||0);
+      catB += +e.budget_amount||0; catA += +e.actual_amount||0;
+      html += `<tr>
+        <td style="padding-left:20px;color:var(--gray-400);font-size:12px">${e.category}</td>
+        <td>${e.subcategory}</td>
+        <td class="mono">${fmt(+e.budget_amount)}</td>
+        <td class="mono">${fmt(+e.actual_amount)}</td>
+        <td class="mono ${varClass(-v)}">${fmt(v)}</td>
+        ${canEdit ? `<td><button class="btn btn-ghost btn-sm" onclick="editEntry('${e.id}','cost')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="removeEntry('${e.id}','cost')">✕</button></td>` : ''}
+      </tr>`;
+    }
+    grandB += catB; grandA += catA;
+  }
+  html += `</tbody><tfoot><tr class="total-row"><td colspan="2">TOTAL COSTS</td><td class="mono">${fmt(grandB)}</td><td class="mono">${fmt(grandA)}</td><td class="mono">${fmt(grandA-grandB)}</td>${canEdit?'<td></td>':''}</tr></tfoot></table></div>`;
+  container.innerHTML = html;
+  if (canEdit) document.getElementById('cost-add-btn').innerHTML = `<button class="btn btn-primary" onclick="addEntry('cost')">+ Add Cost Entry</button>`;
+}
+
+async function renderGM() {
+  const entries = await getAllEntries();
+  const rev  = entries.filter(e => e.entry_type === 'revenue');
+  const cost = entries.filter(e => e.entry_type === 'cost');
+  const bRev  = rev.reduce((s,e)  => s + (+e.budget_amount||0), 0);
+  const aRev  = rev.reduce((s,e)  => s + (+e.actual_amount||0), 0);
+  const bCost = cost.reduce((s,e) => s + (+e.budget_amount||0), 0);
+  const aCost = cost.reduce((s,e) => s + (+e.actual_amount||0), 0);
+  const bGM   = bRev - bCost, aGM = aRev - aCost;
+
+  document.getElementById('gm-table').innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Metric</th><th>Budget</th><th>Actual</th><th>Variance</th></tr></thead>
+      <tbody>
+        <tr><td>Total Revenue</td><td class="mono">${fmt(bRev)}</td><td class="mono">${fmt(aRev)}</td><td class="mono ${varClass(aRev-bRev)}">${fmt(aRev-bRev)}</td></tr>
+        <tr><td>Total Costs</td><td class="mono">${fmt(bCost)}</td><td class="mono">${fmt(aCost)}</td><td class="mono ${varClass(bCost-aCost)}">${fmt(aCost-bCost)}</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="total-row" style="background:var(--teal)"><td>Gross Margin (€)</td><td class="mono">${fmt(bGM)}</td><td class="mono">${fmt(aGM)}</td><td class="mono ${varClass(aGM-bGM)}">${fmt(aGM-bGM)}</td></tr>
+        <tr class="total-row" style="background:var(--green)"><td>GM %</td><td class="mono">${pct(bRev?bGM/bRev:0)}</td><td class="mono">${pct(aRev?aGM/aRev:0)}</td><td class="mono">${pct(aRev?aGM/aRev:0)}</td></tr>
+      </tfoot>
+    </table></div>`;
+}
+
+// Entry modal (inline prompt)
+function addEntry(type) {
+  const cats = type === 'revenue' ? REVENUE_CATS : Object.keys(COST_CATEGORIES);
+  const subOpts = type === 'cost' ? Object.entries(COST_CATEGORIES).map(([c,ss]) => ss.map(s=>`<option data-cat="${c}" value="${c}||${s}">${c} › ${s}</option>`).join('')).join('') :
+    REVENUE_CATS.map(r=>`<option value="${r}">${r}</option>`).join('');
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `<div class="modal">
+    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+    <h2>${type==='revenue'?'Add Revenue':'Add Cost'} Entry</h2>
+    <p>Enter budget and actual amounts for this entry.</p>
+    ${type==='cost'?`<div class="field" style="margin-bottom:14px"><label>Category › Subcategory</label><select id="m-sub" style="width:100%;padding:10px;border:1.5px solid var(--gray-200);border-radius:8px">${subOpts}</select></div>`:`<div class="field" style="margin-bottom:14px"><label>Revenue Type</label><select id="m-sub" style="width:100%;padding:10px;border:1.5px solid var(--gray-200);border-radius:8px">${subOpts}</select></div>`}
+    <div class="form-row">
+      <div class="field"><label>Budget (€)</label><input id="m-bud" type="number" placeholder="0" min="0"></div>
+      <div class="field"><label>Actual (€)</label><input id="m-act" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="field" style="margin-bottom:16px"><label>Notes (optional)</label><textarea id="m-notes" placeholder="Additional context..."></textarea></div>
+    <button class="btn btn-primary" onclick="saveNewEntry('${type}',this.closest('.modal-overlay'))">Save Entry</button>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+async function saveNewEntry(type, overlay) {
+  const sub   = document.getElementById('m-sub').value;
+  const bud   = parseFloat(document.getElementById('m-bud').value)||0;
+  const act   = parseFloat(document.getElementById('m-act').value)||0;
+  const notes = document.getElementById('m-notes').value;
+  let cat = type === 'revenue' ? 'Revenue' : sub.split('||')[0];
+  let subcat = type === 'revenue' ? sub : sub.split('||')[1];
+  const entry = {
+    id: 'e_'+Date.now(), year: currentFY, category: cat, subcategory: subcat,
+    budget_amount: bud, actual_amount: act, entry_type: type, notes,
+    created_by: currentUser?.id
+  };
+  await upsertEntry(entry);
+  overlay.remove();
+  showToast('Entry saved!', 'success');
+  if (type === 'revenue') { renderRevenueEditor(); } else { renderCostEditor(); }
+  loadDashboard(); renderCostSplitPage();
+}
+
+async function editEntry(id, type) {
+  const all = await getAllEntries();
+  const e = all.find(x => x.id === id);
+  if (!e) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<div class="modal">
+    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+    <h2>Edit Entry</h2>
+    <p><strong>${e.category} › ${e.subcategory}</strong></p>
+    <div class="form-row">
+      <div class="field"><label>Budget (€)</label><input id="e-bud" type="number" value="${e.budget_amount}"></div>
+      <div class="field"><label>Actual (€)</label><input id="e-act" type="number" value="${e.actual_amount}"></div>
+    </div>
+    <div class="field" style="margin-bottom:16px"><label>Notes</label><textarea id="e-notes">${e.notes||''}</textarea></div>
+    <button class="btn btn-primary" onclick="saveEditEntry('${id}','${type}',this.closest('.modal-overlay'))">Update</button>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function saveEditEntry(id, type, overlay) {
+  const all = await getAllEntries();
+  const e = all.find(x => x.id === id);
+  e.budget_amount = parseFloat(document.getElementById('e-bud').value)||0;
+  e.actual_amount = parseFloat(document.getElementById('e-act').value)||0;
+  e.notes = document.getElementById('e-notes').value;
+  await upsertEntry(e);
+  overlay.remove();
+  showToast('Updated!', 'success');
+  if (type === 'revenue') renderRevenueEditor(); else renderCostEditor();
+  loadDashboard(); renderCostSplitPage();
+}
+
+async function removeEntry(id, type) {
+  if (!confirm('Delete this entry?')) return;
+  await deleteEntry(id);
+  showToast('Deleted', 'success');
+  if (type === 'revenue') renderRevenueEditor(); else renderCostEditor();
+  loadDashboard(); renderCostSplitPage();
+}
+
+// ═══════════════════════════════════════════
+// COST SPLIT PAGE
+// ═══════════════════════════════════════════
+async function renderCostSplitPage() {
+  const entries = await getEntries('cost');
+  const totalB = entries.reduce((s,e) => s + (+e.budget_amount||0), 0);
+  const totalA = entries.reduce((s,e) => s + (+e.actual_amount||0), 0);
+  let html = `<table><thead><tr><th>#</th><th>Category</th><th>Budget (€)</th><th>Actual (€)</th><th>Variance</th><th>% of Budget</th><th>% of Actual</th></tr></thead><tbody>`;
+  let i = 1;
+  for (const [cat, subs] of Object.entries(COST_CATEGORIES)) {
+    const catEntries = entries.filter(e => e.category === cat);
+    if (!catEntries.length) continue;
+    const catB = catEntries.reduce((s,e)=>s+(+e.budget_amount||0),0);
+    const catA = catEntries.reduce((s,e)=>s+(+e.actual_amount||0),0);
+    const v = catA - catB;
+    html += `<tr style="background:${i%2===0?'var(--gray-50)':'#fff'}">
+      <td style="color:var(--gray-400);font-size:12px">${i++}</td>
+      <td><strong>${cat}</strong></td>
+      <td class="mono">${fmt(catB)}</td>
+      <td class="mono">${fmt(catA)}</td>
+      <td class="mono ${varClass(-v)}">${fmt(v)}</td>
+      <td class="mono">${pct(totalB?catB/totalB:0)}</td>
+      <td class="mono">${pct(totalA?catA/totalA:0)}</td>
+    </tr>`;
+  }
+  html += `</tbody><tfoot><tr class="total-row"><td colspan="2">TOTAL</td><td class="mono">${fmt(totalB)}</td><td class="mono">${fmt(totalA)}</td><td class="mono">${fmt(totalA-totalB)}</td><td class="mono">100%</td><td class="mono">100%</td></tr></tfoot></table>`;
+  document.getElementById('cost-split-table').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
+// MONTHLY PAGE
+// ═══════════════════════════════════════════
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DEMO_REV  = [60000,58000,62000,65000,70000,72000,60000,55000,68000,72000,74000,84000];
+const DEMO_COST = [48000,47000,49000,50000,52000,53000,48000,46000,51000,53000,55000,62000];
+
+function renderMonthlyPage() {
+  const rev  = DEMO_REV;
+  const cost = DEMO_COST;
+  const gm   = rev.map((r,i) => r - cost[i]);
+  const gmpct= rev.map((r,i) => r ? (r - cost[i])/r : 0);
+
+  let html = `<table><thead><tr><th>Metric</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Full Year</th></tr></thead><tbody>`;
+  const row = (label, vals, isFmt, isPct, cls) => {
+    const total = vals.reduce((s,v)=>s+v,0);
+    const cells = vals.map(v => `<td class="mono ${cls||''}">${isPct?pct(v):fmt(v)}</td>`).join('');
+    return `<tr style="background:${cls?'var(--green)':''}"><td><strong>${label}</strong></td>${cells}<td class="mono" style="font-weight:700">${isPct?pct(vals.reduce((s,v)=>s+v,0)/vals.length):fmt(total)}</td></tr>`;
+  };
+  html += row('Revenue', rev, true, false);
+  html += row('Total Costs', cost, true, false);
+  html += `<tr style="background:var(--navy)"><td style="color:#fff;font-weight:700">Gross Margin</td>${gm.map(v=>`<td class="mono" style="color:#fff;font-weight:700">${fmt(v)}</td>`).join('')}<td class="mono" style="color:#fff;font-weight:700">${fmt(gm.reduce((s,v)=>s+v,0))}</td></tr>`;
+  html += `<tr style="background:var(--teal)"><td style="color:#fff;font-weight:700">GM%</td>${gmpct.map(v=>`<td class="mono" style="color:#fff;font-weight:700">${pct(v)}</td>`).join('')}<td class="mono" style="color:#fff;font-weight:700">${pct(gmpct.reduce((s,v)=>s+v,0)/gmpct.length)}</td></tr>`;
+  html += `</tbody></table>`;
+  document.getElementById('monthly-table').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
+// USERS (Admin)
+// ═══════════════════════════════════════════
+async function loadUsers() {
+  if (demoMode) {
+    document.getElementById('users-table').innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Since</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr><td>Demo Admin</td><td>admin@demo.local</td><td><span class="badge badge-admin">Admin</span></td><td>Demo</td><td><button class="btn btn-ghost btn-sm" disabled>Current User</button></td></tr>
+      </tbody></table>
+      <p style="font-size:12px;color:var(--gray-400);margin-top:8px">Connect Supabase to manage real users.</p></div>`;
+    return;
+  }
+  const { data } = await supabase.from('profiles').select('*').order('created_at');
+  if (!data) return;
+  let html = `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead><tbody>`;
+  for (const u of data) {
+    html += `<tr><td>${u.full_name||'—'}</td><td>${u.id}</td>
+      <td><select class="role-select" onchange="changeRole('${u.id}',this.value)">
+        <option ${u.role==='viewer'?'selected':''} value="viewer">Viewer</option>
+        <option ${u.role==='editor'?'selected':''} value="editor">Editor</option>
+        <option ${u.role==='admin'?'selected':''} value="admin">Admin</option>
+      </select></td>
+      <td><button class="btn btn-danger btn-sm" onclick="removeUser('${u.id}')">Remove</button></td></tr>`;
+  }
+  html += `</tbody></table></div>`;
+  document.getElementById('users-table').innerHTML = html;
+}
+
+async function changeRole(uid, role) {
+  if (demoMode) { showToast('Connect Supabase to manage roles', 'error'); return; }
+  await supabase.from('profiles').update({ role }).eq('id', uid);
+  showToast('Role updated', 'success');
+}
+
+async function inviteUser() {
+  const email = document.getElementById('inv-email').value.trim();
+  const name  = document.getElementById('inv-name').value.trim();
+  const role  = document.getElementById('inv-role').value;
+  if (!email) { showToast('Enter an email address', 'error'); return; }
+  if (demoMode) { showToast('Demo mode: connect Supabase to send real invitations', 'error'); return; }
+  // Use Supabase admin inviteUserByEmail (requires service key — frontend limitation)
+  showToast(`To invite ${email}: use Supabase Auth dashboard > Invite user, then set their role to "${role}" in the Users table.`, 'success');
+}
+
+async function removeUser(uid) {
+  if (!confirm('Remove this user?')) return;
+  await supabase.from('profiles').delete().eq('id', uid);
+  showToast('User removed from profiles. Remove from Auth in Supabase dashboard.', 'success');
+  loadUsers();
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+const PAGE_TITLES = {
+  dashboard:'Dashboard', budget:'Budget vs Actual',
+  'cost-split':'Cost Split', monthly:'Monthly Plan',
+  users:'User Management', settings:'Settings'
+};
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelector(`.nav-item[onclick="showPage('${name}')"]`)?.classList.add('active');
+  document.getElementById('page-title').textContent = PAGE_TITLES[name] || name;
+}
+
+// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+function setFY(y) { currentFY = parseInt(y); document.getElementById('fiscal-year').textContent = 'FY '+y; }
+function saveSettings() {
+  currentFY = parseInt(document.getElementById('set-year').value);
+  document.getElementById('fiscal-year').textContent = 'FY '+currentFY;
+  showToast('Settings saved', 'success');
+  loadDashboard(); renderBudgetPage(); renderCostSplitPage();
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3500);
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  if (!initSupabase() && !localStorage.getItem('bpo_demo')) {
+    // first visit — don't auto-show setup, let user decide
+  }
+  // Check existing session
+  if (supabase) {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user) {
+        currentUser = data.session.user;
+        loadProfile().then(() => {
+          document.getElementById('login-screen').style.display = 'none';
+          bootApp();
+        });
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>
