@@ -291,41 +291,68 @@ input.ci:focus{border-bottom-color:var(--blue);background:rgba(74,108,247,.08);b
         <span style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase">SQL — run once in Supabase SQL Editor</span>
         <button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText(document.getElementById('sb-sql-pre').textContent);showToast('SQL copied','ok')">Copy</button>
       </div>
-      <pre id="sb-sql-pre" style="font-family:var(--fm);font-size:10px;color:var(--text2);white-space:pre;line-height:1.5;overflow-x:auto">create table if not exists bpo_state (
+      <pre id="sb-sql-pre" style="font-family:var(--fm);font-size:10px;color:var(--text2);white-space:pre;line-height:1.5;overflow-x:auto">-- Step 1: Create tables
+create table if not exists bpo_state (
   id text primary key default 'main',
   data jsonb not null,
   updated_at timestamptz default now()
 );
-alter table bpo_state enable row level security;
-create policy "Auth users full access" on bpo_state
-  for all to authenticated using (true) with check (true);
-
 create table if not exists bpo_users (
   id uuid references auth.users primary key,
   name text,
-  role text default 'Manager',
+  role text default 'Sr. Manager',
   assigned_project text default null,
   created_at timestamptz default now()
 );
+
+-- Step 2: Enable RLS
+alter table bpo_state enable row level security;
 alter table bpo_users enable row level security;
-create policy "Own profile" on bpo_users
-  for select using (auth.uid() = id);
-create policy "Sr Manager manage all" on bpo_users
-  for all using (
-    exists (select 1 from bpo_users u
+
+-- Step 3: Drop old policies first (clean slate)
+drop policy if exists "Auth users full access" on bpo_state;
+drop policy if exists "Own profile" on bpo_users;
+drop policy if exists "Admins manage all" on bpo_users;
+drop policy if exists "Sr Manager manage all" on bpo_users;
+drop policy if exists "All authenticated users read bpo_users" on bpo_users;
+
+-- Step 4: bpo_state — full access for logged in users
+create policy "Auth users full access" on bpo_state
+  for all to authenticated
+  using (true) with check (true);
+
+-- Step 5: bpo_users — ALL authenticated users can read ALL rows
+-- (needed so users can see their own profile)
+create policy "Authenticated read all" on bpo_users
+  for select to authenticated
+  using (true);
+
+-- Step 6: bpo_users — only Sr. Manager can insert/update/delete
+create policy "Sr Manager write" on bpo_users
+  for all to authenticated
+  using (
+    exists (
+      select 1 from bpo_users u
       where u.id = auth.uid()
-      and u.role in ('Sr. Manager','Administrator'))
-  );
+      and u.role in ('Sr. Manager','Administrator')
+    )
+  )
+  with check (true);
+
+-- Step 7: Auto-create profile on signup
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer as $$
 begin
   insert into public.bpo_users(id, name, role)
-  values (new.id,
+  values (
+    new.id,
     coalesce(new.raw_user_meta_data->>'name', split_part(new.email,'@',1)),
-    'Manager')
+    'Sr. Manager'
+  )
   on conflict (id) do nothing;
   return new;
 end;$$;
+
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
@@ -666,6 +693,19 @@ async function sbREST(method,path,body,extra){
   let d=null;try{const t=await res.text();d=t?JSON.parse(t):null;}catch(e){d=null;}
   return res.ok?{data:d,error:null}:{data:null,error:{message:(d?.message||d?.error_description||d?.hint||res.statusText),code:res.status}};
 }
+async function sbSelectProfile(userId){
+  // Dedicated profile fetch — tries with filter first, falls back to unfiltered
+  const{data,error}=await sbREST('GET','/rest/v1/bpo_users?select=id,name,role,assigned_project&id=eq.'+userId);
+  if(!error && data?.length) return data[0];
+  // Fallback: try without filter (some RLS configs need this)
+  const{data:all,error:e2}=await sbREST('GET','/rest/v1/bpo_users?select=id,name,role,assigned_project');
+  if(!e2 && all?.length){
+    const found=all.find(r=>r.id===userId);
+    if(found)return found;
+  }
+  console.warn('[BPO] Profile fetch failed:',error||e2);
+  return null;
+}
 async function sbSelect(table,filter=''){
   return sbREST('GET','/rest/v1/'+table+'?select=*'+(filter?'&'+filter:''));
 }
@@ -792,9 +832,11 @@ async function doLogin(){
     if(error){er.textContent=error.message;return;}
     SB_TOKEN=data.access_token;
     localStorage.setItem('bpo_sb_token',SB_TOKEN);
-    const{data:profiles}=await sbSelect('bpo_users','id=eq.'+data.user.id);
-    const p=profiles?.[0];
-    ME={id:data.user.id,email:em,name:p?.name||em.split('@')[0],role:p?.role||'Manager',assignedProject:p?.assigned_project||null};
+    const p=await sbSelectProfile(data.user.id);
+    console.log('[BPO] Login profile:', p);
+    const role = p?.role || 'Sr. Manager';
+    ME={id:data.user.id,email:em,name:p?.name||em.split('@')[0],role,assignedProject:p?.assigned_project||null};
+    console.log('[BPO] ME.role:', ME.role);
     await sbLoad();
     launchApp();
   }else{
@@ -2245,13 +2287,14 @@ window.addEventListener('DOMContentLoaded', async () => {
       const user=await sbGetUser(cachedToken);
       if(user?.id){
         SB_TOKEN=cachedToken;
-        const{data:profiles}=await sbSelect('bpo_users','id=eq.'+user.id);
-        const p=profiles?.[0];
+        const p=await sbSelectProfile(user.id);
+        console.log('[BPO] Session restore profile:', p);
         if(!p){localStorage.removeItem('bpo_sb_token');return;}
         ME={id:user.id,email:user.email,
             name:p.name||user.email.split('@')[0],
-            role:p.role||'Manager',
+            role:p.role||'Sr. Manager',
             assignedProject:p.assigned_project||null};
+        console.log('[BPO] Session restore role:', ME.role);
         await sbLoad();
         launchApp();
         return;
