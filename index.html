@@ -253,7 +253,7 @@ input.ci:focus{border-bottom-color:var(--blue);background:rgba(74,108,247,.08);b
 <body>
 
 <!-- ════ MODALS ════ -->
-<div class="mo" id="m-proj"><div class="mbox"><button class="mcl" onclick="M('m-proj')">✕</button><h2 class="mh2" id="mpjt">Add Project</h2><p class="mp">Configure a new BPO project. Agents, costs and revenue can be added after creation.</p><div class="fr"><div class="ff"><label>Project Name</label><input id="pj-n" placeholder="e.g. SALT Care"></div><div class="ff"><label>Client</label><input id="pj-cl" placeholder="e.g. SALT"></div></div><div class="fr"><div class="ff"><label>Location</label><input id="pj-lo" placeholder="e.g. İzmir"></div><div class="ff"><label>Director</label><input id="pj-di" placeholder="Name"></div></div><div class="fr"><div class="ff"><label>Ops Manager</label><input id="pj-om" placeholder="Name"></div><div class="ff"><label>Working Model</label><select id="pj-wm"><option>WFH</option><option>WFO</option><option>WFH & WFO</option><option>Hybrid</option><option>Client Site</option></select></div></div><div class="fr"><div class="ff"><label>Invoicing</label><select id="pj-iv"><option>Per Hours / Sales</option><option>Per FTE</option><option>Per Success</option><option>Other</option></select></div><div class="ff"><label>Accent Color</label><select id="pj-co"><option value="#4a6cf7">Blue</option><option value="#f0a500">Gold</option><option value="#00c896">Green</option><option value="#8b5cf6">Purple</option><option value="#e84057">Red</option><option value="#06b6d4">Teal</option></select></div></div><div style="display:flex;gap:7px;margin-top:12px"><button class="btn btn-gold" onclick="saveProject()">Save</button><button class="btn btn-ghost" onclick="M('m-proj')">Cancel</button></div></div></div>
+<div class="mo" id="m-proj"><div class="mbox"><button class="mcl" onclick="M('m-proj')">✕</button><h2 class="mh2" id="mpjt">Add Project</h2><p class="mp">Configure a new BPO project. Agents, costs and revenue can be added after creation.</p><div class="fr"><div class="ff"><label>Project Name</label><input id="pj-n" placeholder="e.g. SALT Care"></div><div class="ff"><label>Client</label><input id="pj-cl" placeholder="e.g. SALT"></div></div><div class="fr"><div class="ff"><label>Location</label><input id="pj-lo" placeholder="e.g. İzmir"></div><div class="ff"><label>Director</label><input id="pj-di" placeholder="Name"></div></div><div class="fr"><div class="ff"><label>Ops Manager</label><input id="pj-om" placeholder="Name"></div><div class="ff"><label>Working Model</label><select id="pj-wm"><option>WFH</option><option>WFO</option><option>WFH & WFO</option><option>Hybrid</option><option>Client Site</option></select></div></div><div class="fr"><div class="ff"><label>Invoice Model</label><select id="pj-iv" onchange="showInvModelHint()"><option value="Production Hours">Production Hours — rate × hrs × FTE</option><option value="FTE">FTE — fixed price per head/month</option><option value="ICM">ICM — base + performance bonus</option></select></div><div class="ff"><label>Accent Color</label><select id="pj-co"><option value="#4a6cf7">Blue</option><option value="#f0a500">Gold</option><option value="#00c896">Green</option><option value="#8b5cf6">Purple</option><option value="#e84057">Red</option><option value="#06b6d4">Teal</option></select></div></div><div id="pj-inv-hint" style="font-size:11px;color:var(--text2);padding:8px 10px;background:var(--surface3);border-radius:6px;margin-bottom:4px"></div><div style="display:flex;gap:7px;margin-top:12px"><button class="btn btn-gold" onclick="saveProject()">Save</button><button class="btn btn-ghost" onclick="M('m-proj')">Cancel</button></div></div></div>
 
 <div class="mo" id="m-ag"><div class="mbox"><button class="mcl" onclick="M('m-ag')">✕</button><h2 class="mh2" id="magt">Add Agent Group</h2><p class="mp">Define an agent segment. Costs auto-calculate via the FX rate.</p><div class="fr"><div class="ff"><label>Group Name</label><input id="ag-n" placeholder="e.g. German"></div><div class="ff"><label>Language</label><select id="ag-lg"><option value="DE">DE — German</option><option value="CH">CH — Swiss</option><option value="FR">FR — French</option><option value="EN">EN — English</option><option value="TR">TR — Turkish</option><option value="—">Other</option></select></div></div><div class="fr"><div class="ff"><label>Net Salary (TRY)</label><input id="ag-s" type="number" placeholder="42250"></div><div class="ff"><label>Headcount (all months)</label><input id="ag-h" type="number" placeholder="10"></div></div><div class="fr"><div class="ff"><label>Bonus %</label><input id="ag-b" type="number" placeholder="7"></div><div class="ff"><label>Revenue Rate (EUR/hr)</label><input id="ag-r" type="number" placeholder="135" step="0.5"></div></div>
 <div style="margin:12px 0;padding:12px 14px;background:var(--surface3);border-radius:var(--r2);border:1.5px solid var(--border);display:flex;align-items:flex-start;gap:12px">
@@ -393,7 +393,6 @@ create trigger on_auth_user_created
       <button class="btn btn-ghost btn-sm" onclick="openComment()">📝 Note</button>
       <button class="btn btn-outline btn-sm" onclick="exportExcel()">⬇ Excel</button>
       <button class="btn btn-blue btn-sm" onclick="exportPDF()">⬇ PDF</button>
-      <button class="btn btn-gold btn-sm" onclick="recalcAll()">⟳ Recalc</button>
     </div>
   </div>
   <div class="content">
@@ -507,7 +506,7 @@ create trigger on_auth_user_created
 
     <!-- ═══ ASSUMPTIONS ═══ -->
     <div class="page" id="page-assumptions">
-      <div class="shead"><div><div class="stitle">Assumptions</div><div class="ssub">Model inputs and FX schedule</div></div><button class="btn btn-gold btn-sm" onclick="recalcAll();showToast('Applied ✓','ok')">Apply & Recalculate</button></div>
+      <div class="shead"><div><div class="stitle">Assumptions</div><div class="ssub">Model inputs and FX schedule — changes apply automatically</div></div><button class="btn btn-gold btn-sm" onclick="scheduleRecalc(null);showToast('Applying…','ok')">Apply All</button></div>
       <div id="asm-grid"></div>
       <div class="card"><div class="ct">Monthly FX Rate Schedule</div><div class="cs">EUR→TRY per month</div><div class="tw" id="fx-tbl"></div></div>
     </div>
@@ -883,61 +882,110 @@ let COMMENTS=[];
 let ACTUALS={};// {projName: {m: {rev,cost}}}
 
 let PROJECTS={
-  'SALT Care':{id:'p0',color:'#4a6cf7',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH & WFO',invoicing:'Per Hours / Sales'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(9),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(1),salary:47250,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:Array(12).fill(5),salary:42250,bonus:0.07,isBuffer:false},{name:'Buffer DE',lang:'DE',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true},{name:'Buffer FR',lang:'FR',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'TL French',hc:1,salary:55000,bonus:0.07},{name:'Quality',hc:1,salary:60000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},revEUR:Array(12).fill(135),overtimeH:Array(12).fill(0)},
-  'SALT RET':{id:'p1',color:'#8b5cf6',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'Per Hours / Sales'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(12),salary:42250,bonus:0.07},{name:'Swiss',lang:'CH',hc:Array(12).fill(3),salary:47250,bonus:0.07}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},revEUR:Array(12).fill(135),overtimeH:Array(12).fill(0)},
-  'SALT TLS':{id:'p2',color:'#00c896',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'Per Hours / Sales'},agents:[{name:'Swiss',lang:'CH',hc:[10,9,8,8,8,8,8,10,10,10,10,10],salary:45000,bonus:0.07},{name:'French',lang:'FR',hc:[6,6,6,6,6,6,6,5,5,5,5,5],salary:38400,bonus:0.07}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},revEUR:Array(12).fill(135),overtimeH:Array(12).fill(0)},
-  'SALT OB':{id:'p3',color:'#f0a500',meta:{client:'SALT OB',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'Per Hours / Sales'},agents:[{name:'ACQ',lang:'—',hc:Array(12).fill(12),salary:45000,bonus:0.07},{name:'Fiber',lang:'—',hc:[3,3,3,3,3,3,3,4,4,4,4,4],salary:45000,bonus:0.07}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},revEUR:Array(12).fill(135),overtimeH:Array(12).fill(0)},
+  'SALT Care':{id:'p0',color:'#4a6cf7',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH & WFO',invoicing:'Production Hours'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(9),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(1),salary:47250,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:Array(12).fill(5),salary:42250,bonus:0.07,isBuffer:false},{name:'Buffer DE',lang:'DE',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true},{name:'Buffer FR',lang:'FR',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'TL French',hc:1,salary:55000,bonus:0.07},{name:'Quality',hc:1,salary:60000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'Production Hours',rateEUR:Array(12).fill(135),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT RET':{id:'p1',color:'#8b5cf6',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(12),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(3),salary:47250,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'FTE',rateEUR:Array(12).fill(135),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT TLS':{id:'p2',color:'#00c896',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'ICM'},agents:[{name:'Swiss',lang:'CH',hc:[10,9,8,8,8,8,8,10,10,10,10,10],salary:45000,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:[6,6,6,6,6,6,6,5,5,5,5,5],salary:38400,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'ICM',rateEUR:Array(12).fill(135),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT OB':{id:'p3',color:'#f0a500',meta:{client:'SALT OB',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'ACQ',lang:'—',hc:Array(12).fill(12),salary:45000,bonus:0.07,isBuffer:false},{name:'Fiber',lang:'—',hc:[3,3,3,3,3,3,3,4,4,4,4,4],salary:45000,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'FTE',rateEUR:Array(12).fill(135),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
 };
 
 // ══════════════════ CALC ══════════════════
-function calcProject(proj,ov){
-  const ov2=ov||{};const R={months:[],annual:{}};const mw=ASM.minWage;
-  for(let m=0;m<12;m++){
-    const fx=FX[m]*(1+(ov2.fxBoost||0));const pd=PROD_DAYS[m];
-    let agSal=0,bufSal=0,byLang={},billingAg=0,bufferAg=0;
+// ══════════════════ INVOICE MODEL HELPERS ══════════════════
+// Production Hours: Revenue = rateEUR/hr × productive hours × billing FTE
+// FTE:             Revenue = ftePriceEUR/FTE/month × billing FTE
+// ICM:             Revenue = baseEUR + bonusPct × (actualUnits/targetUnits - 1) × baseEUR  (incentive/commission)
 
-    for(const ag of proj.agents){
-      const hc=Math.round((ag.hc[m]||0)*(1-(ov2.hcCut||0)));if(!hc)continue;
-      const net=Math.max(ag.salary,mw);const ec=net*1.25*(1+ag.bonus);
-      const cost=hc*ec*(1+(ov2.costBoost||0));
+function calcRevEUR(proj, m, billingAg, ov2) {
+  const model = proj.invoiceModel || 'Production Hours';
+  const pd = PROD_DAYS[m];
+  const boost = 1 + (ov2.revBoost || 0);
 
-      if(ag.isBuffer){
-        // Buffer: cost only — no revenue, not in billing FTE
-        bufSal+=cost;bufferAg+=hc;
-        if(!byLang[ag.lang])byLang[ag.lang]={hc:0,cost:0,bufHc:0,bufCost:0};
-        byLang[ag.lang].bufHc+=hc;byLang[ag.lang].bufCost+=cost;
+  if (model === 'FTE') {
+    // Fixed monthly price per active FTE
+    const price = (proj.ftePriceEUR?.[m] ?? 3200);
+    return price * billingAg * boost;
+  }
+  if (model === 'ICM') {
+    // Incentive/Commission: base + performance bonus
+    const cfg = proj.icmConfig || {};
+    const base    = cfg.baseEUR?.[m]       ?? 50000;
+    const bonusPct= cfg.bonusPct?.[m]      ?? 0.15;
+    const target  = cfg.targetUnits?.[m]   ?? 1000;
+    const actual  = cfg.actualUnits?.[m]   ?? 0;
+    const achieved = target > 0 ? actual / target : 0;
+    // Base always paid; bonus only if target exceeded
+    const bonus = achieved > 1 ? (achieved - 1) * bonusPct * base : 0;
+    return (base + bonus) * boost;
+  }
+  // Default: Production Hours — rateEUR × prodDays × 8h × billing FTE
+  const rate = proj.rateEUR?.[m] ?? (proj.revEUR?.[m] ?? 135);
+  return rate * pd * 8 * billingAg * boost;
+}
+
+function calcProject(proj, ov) {
+  const ov2 = ov || {};
+  const R = { months: [], annual: {} };
+  const mw = ASM.minWage;
+  const model = proj.invoiceModel || 'Production Hours';
+
+  for (let m = 0; m < 12; m++) {
+    const fx = FX[m] * (1 + (ov2.fxBoost || 0));
+    const pd = PROD_DAYS[m];
+    let agSal = 0, bufSal = 0, byLang = {}, billingAg = 0, bufferAg = 0;
+
+    for (const ag of proj.agents) {
+      const hc = Math.round((ag.hc[m] || 0) * (1 - (ov2.hcCut || 0)));
+      if (!hc) continue;
+      const net  = Math.max(ag.salary, mw);
+      const ec   = net * 1.25 * (1 + ag.bonus);
+      const cost = hc * ec * (1 + (ov2.costBoost || 0));
+      if (ag.isBuffer) {
+        bufSal += cost; bufferAg += hc;
+        if (!byLang[ag.lang]) byLang[ag.lang] = { hc:0, cost:0, bufHc:0, bufCost:0 };
+        byLang[ag.lang].bufHc += hc; byLang[ag.lang].bufCost += cost;
       } else {
-        // Productive billing agents: cost + revenue
-        agSal+=cost;billingAg+=hc;
-        if(!byLang[ag.lang])byLang[ag.lang]={hc:0,cost:0,bufHc:0,bufCost:0};
-        byLang[ag.lang].hc+=hc;byLang[ag.lang].cost+=cost;
+        agSal += cost; billingAg += hc;
+        if (!byLang[ag.lang]) byLang[ag.lang] = { hc:0, cost:0, bufHc:0, bufCost:0 };
+        byLang[ag.lang].hc += hc; byLang[ag.lang].cost += cost;
       }
     }
 
-    const totalAg=billingAg+bufferAg; // total HC for overhead calc
-    let mgC=0;for(const mg of proj.mgmt)mgC+=mg.hc*(Math.max(mg.salary,mw)*1.25*(1+(mg.bonus||ASM.mgmtBonus)))*(1+(ov2.costBoost||0));
-    const totalHC=totalAg+proj.mgmt.reduce((s,mg)=>s+mg.hc,0);
-    const otherC=totalHC*((proj.costs.food||0)+(proj.costs.transport||0)+(proj.costs.it||0)+(proj.costs.other||0))*(1+(ov2.costBoost||0));
-    const avgNet=billingAg>0?proj.agents.filter(ag=>!ag.isBuffer).reduce((s,ag)=>s+Math.max(ag.salary,mw)*(ag.hc[m]||0),0)/Math.max(billingAg,1):mw;
-    const otC=(proj.overtimeH[m]||0)*(avgNet/(pd*8))*2;
+    const totalAg = billingAg + bufferAg;
+    let mgC = 0;
+    for (const mg of proj.mgmt)
+      mgC += mg.hc * (Math.max(mg.salary, mw) * 1.25 * (1 + (mg.bonus || ASM.mgmtBonus))) * (1 + (ov2.costBoost || 0));
 
-    // Revenue uses ONLY billing (non-buffer) agents
-    const revEUR=proj.revEUR[m]*pd*8*billingAg*(1+(ov2.revBoost||0));
-    const revTRY=revEUR*fx;
+    const totalHC = totalAg + proj.mgmt.reduce((s, mg) => s + mg.hc, 0);
+    const otherC  = totalHC * ((proj.costs.food||0) + (proj.costs.transport||0) + (proj.costs.it||0) + (proj.costs.other||0)) * (1 + (ov2.costBoost||0));
+    const avgNet  = billingAg > 0
+      ? proj.agents.filter(ag => !ag.isBuffer).reduce((s, ag) => s + Math.max(ag.salary, mw) * (ag.hc[m]||0), 0) / Math.max(billingAg, 1)
+      : mw;
+    const otC = (proj.overtimeH[m] || 0) * (avgNet / (pd * 8)) * 2;
 
-    const totalCost=agSal+bufSal+mgC+otherC+otC;
-    const gm=revTRY-totalCost,gmPct=revTRY>0?gm/revTRY:0;
-    R.months.push({m,fx,pd,agSal,bufSal,mgC,otherC,otC,totalCost,revEUR,revTRY,gm,gmPct,
-      billingAg,bufferAg,totalAg,totalHC,byLang});
+    // Revenue — model-dependent
+    const revEUR = calcRevEUR(proj, m, billingAg, ov2);
+    const revTRY = revEUR * fx;
+
+    const totalCost = agSal + bufSal + mgC + otherC + otC;
+    const gm     = revTRY - totalCost;
+    const gmPct  = revTRY > 0 ? gm / revTRY : 0;
+
+    // FTE model: revenue is not hours-based — revEUR is total monthly, not per-hour
+    const billedHours = model === 'Production Hours' ? (proj.rateEUR?.[m] ?? 135) > 0
+      ? revEUR / (proj.rateEUR?.[m] ?? 135) : 0 : null;
+
+    R.months.push({ m, fx, pd, agSal, bufSal, mgC, otherC, otC, totalCost,
+      revEUR, revTRY, gm, gmPct, billingAg, bufferAg, totalAg, totalHC, byLang, billedHours });
   }
-  R.annual.revTRY=R.months.reduce((s,m)=>s+m.revTRY,0);
-  R.annual.revEUR=R.months.reduce((s,m)=>s+m.revEUR,0);
-  R.annual.cost=R.months.reduce((s,m)=>s+m.totalCost,0);
-  R.annual.gm=R.annual.revTRY-R.annual.cost;
-  R.annual.gmPct=R.annual.revTRY>0?R.annual.gm/R.annual.revTRY:0;
-  R.annual.avgFTE=Math.round(R.months.reduce((s,m)=>s+m.billingAg,0)/12);
-  R.annual.avgBufFTE=Math.round(R.months.reduce((s,m)=>s+m.bufferAg,0)/12);
-  R.annual.bufCost=R.months.reduce((s,m)=>s+m.bufSal,0);
+
+  R.annual.revTRY   = R.months.reduce((s, m) => s + m.revTRY, 0);
+  R.annual.revEUR   = R.months.reduce((s, m) => s + m.revEUR, 0);
+  R.annual.cost     = R.months.reduce((s, m) => s + m.totalCost, 0);
+  R.annual.gm       = R.annual.revTRY - R.annual.cost;
+  R.annual.gmPct    = R.annual.revTRY > 0 ? R.annual.gm / R.annual.revTRY : 0;
+  R.annual.avgFTE   = Math.round(R.months.reduce((s, m) => s + m.billingAg, 0) / 12);
+  R.annual.avgBufFTE= Math.round(R.months.reduce((s, m) => s + m.bufferAg, 0) / 12);
+  R.annual.bufCost  = R.months.reduce((s, m) => s + m.bufSal, 0);
+  R.annual.model    = model;
   return R;
 }
 function calcAll(ov){const r={};for(const[n,p] of Object.entries(PROJECTS))r[n]=calcProject(p,ov);return r;}
@@ -1058,6 +1106,47 @@ function buildProjPage(pn){
   const proj=PROJECTS[pn];const r=calcProject(proj);const el=document.getElementById('page-proj-'+proj.id);if(!el)return;
   const aR=r.annual.revTRY,aC=r.annual.cost,aG=r.annual.gm;
   const actR=ACTUALS[pn]||{};
+  const model=proj.invoiceModel||'Production Hours';
+
+  // ── Invoice model badge ──
+  const modelBadge={'Production Hours':`<span style="background:rgba(74,108,247,.15);color:var(--blue);padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700">⏱ Production Hours</span>`,'FTE':`<span style="background:rgba(0,200,150,.15);color:var(--green);padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700">👥 FTE</span>`,'ICM':`<span style="background:rgba(240,165,0,.15);color:var(--gold);padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700">🏆 ICM</span>`}[model]||'';
+
+  // ── Revenue config card — adapts per model ──
+  let revConfigCard='';
+  if(model==='Production Hours'){
+    revConfigCard=`<div class="card"><div class="ct">Revenue Configuration — Production Hours ${modelBadge}</div>
+      <div class="cs">Revenue = Rate (EUR/hr) × Productive Days × 8h × Billing FTE. Updates live on change.</div>
+      <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Avg/Annual</th></tr></thead><tbody>
+        <tr class="revr"><td>Rate (EUR/hr)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:58px" data-p="${pn}" data-field="rateEUR" data-mi="${mi}" value="${proj.rateEUR?.[mi]??135}" onchange="onRateChange(this)" type="number" min="0" step="0.5"></td>`).join('')}<td class="mn">${((proj.rateEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(1)}</td></tr>
+        <tr><td style="color:var(--text2);font-size:11px">Prod. Days</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.pd}</td>`).join('')}<td class="mn">${PROD_DAYS.reduce((s,v)=>s+v,0)}</td></tr>
+        <tr><td style="color:var(--text2);font-size:11px">FX (EUR→TRY)</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.fx.toFixed(2)}</td>`).join('')}<td class="mn">${(FX.reduce((s,v)=>s+v,0)/12).toFixed(2)}</td></tr>
+        <tr class="revr"><td style="font-weight:700">Revenue (EUR)</td>${r.months.map(m=>`<td class="mn pos">${fmtEUR(m.revEUR)}</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtEUR(r.annual.revEUR)}</td></tr>
+        <tr class="revr"><td style="font-weight:700">Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
+      </tbody></table></div></div>`;
+  }else if(model==='FTE'){
+    revConfigCard=`<div class="card"><div class="ct">Revenue Configuration — FTE ${modelBadge}</div>
+      <div class="cs">Revenue = Fixed Price (EUR) per billing FTE per month. Adjust per month or set uniform rate.</div>
+      <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Avg/Annual</th></tr></thead><tbody>
+        <tr class="revr"><td>FTE Price (EUR/head/mo)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:62px" data-p="${pn}" data-field="ftePriceEUR" data-mi="${mi}" value="${proj.ftePriceEUR?.[mi]??3200}" onchange="onRateChange(this)" type="number" min="0" step="50"></td>`).join('')}<td class="mn">${((proj.ftePriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(0)} avg</td></tr>
+        <tr><td style="color:var(--text2);font-size:11px">Billing FTE</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.billingAg}</td>`).join('')}<td class="mn">${r.annual.avgFTE} avg</td></tr>
+        <tr><td style="color:var(--text2);font-size:11px">FX (EUR→TRY)</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.fx.toFixed(2)}</td>`).join('')}<td class="mn">${(FX.reduce((s,v)=>s+v,0)/12).toFixed(2)}</td></tr>
+        <tr class="revr"><td style="font-weight:700">Revenue (EUR)</td>${r.months.map(m=>`<td class="mn pos">${fmtEUR(m.revEUR)}</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtEUR(r.annual.revEUR)}</td></tr>
+        <tr class="revr"><td style="font-weight:700">Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
+      </tbody></table></div></div>`;
+  }else if(model==='ICM'){
+    const cfg=proj.icmConfig||{};
+    revConfigCard=`<div class="card"><div class="ct">Revenue Configuration — ICM (Incentive &amp; Commission) ${modelBadge}</div>
+      <div class="cs">Revenue = Base (EUR/mo) + Bonus. Bonus = bonusPct × (Actual ÷ Target − 1) × Base. No bonus if target not reached. Enter actual units achieved each month.</div>
+      <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Annual</th></tr></thead><tbody>
+        <tr><td>Base (EUR/month)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--blue);width:68px" data-p="${pn}" data-field="icm_baseEUR" data-mi="${mi}" value="${cfg.baseEUR?.[mi]??50000}" onchange="onRateChange(this)" type="number" min="0" step="1000"></td>`).join('')}<td class="mn">${fmtEUR((cfg.baseEUR||[]).reduce((s,v)=>s+v,0))}</td></tr>
+        <tr><td>Bonus % (of base)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--purple);width:46px" data-p="${pn}" data-field="icm_bonusPct" data-mi="${mi}" value="${((cfg.bonusPct?.[mi]??0.15)*100).toFixed(0)}" onchange="onRateChange(this)" type="number" min="0" max="200" step="1"></td>`).join('')}<td class="mn">${((cfg.bonusPct||[]).reduce((s,v)=>s+v,0)/12*100).toFixed(0)}% avg</td></tr>
+        <tr><td style="color:var(--gold)">Target Units</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--gold);width:62px" data-p="${pn}" data-field="icm_targetUnits" data-mi="${mi}" value="${cfg.targetUnits?.[mi]??1000}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.targetUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
+        <tr><td style="color:var(--green)">Actual Units Achieved</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:62px" data-p="${pn}" data-field="icm_actualUnits" data-mi="${mi}" value="${cfg.actualUnits?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.actualUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
+        <tr><td style="color:var(--text2);font-size:11px">Achievement %</td>${MONTHS.map((_,mi)=>{const t=cfg.targetUnits?.[mi]??1000;const a=cfg.actualUnits?.[mi]??0;const pct=t>0?a/t:0;return`<td class="mn ${vc(pct-1)}" style="font-size:11px">${(pct*100).toFixed(0)}%</td>`;}).join('')}<td></td></tr>
+        <tr class="revr"><td style="font-weight:700">Revenue (EUR)</td>${r.months.map(m=>`<td class="mn pos">${fmtEUR(m.revEUR)}</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtEUR(r.annual.revEUR)}</td></tr>
+        <tr class="revr"><td style="font-weight:700">Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
+      </tbody></table></div></div>`;
+  }
 
   const hcRows=proj.agents.map((ag,i)=>`<tr style="${ag.isBuffer?'background:rgba(245,158,11,.04)':''}">
     <td>${lBadge(ag.lang)} ${ag.name}${ag.isBuffer?` <span style="background:rgba(245,158,11,.2);color:var(--amber);padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700;margin-left:4px">⚡ BUFFER</span>`:''}</td>
@@ -1076,13 +1165,12 @@ function buildProjPage(pn){
 
   el.innerHTML=`
   <div class="shead">
-    <div><div class="stitle" style="display:flex;align-items:center;gap:9px"><span style="width:11px;height:11px;border-radius:50%;background:${proj.color};display:inline-block;flex-shrink:0"></span>${pn}</div>
-    <div class="ssub">${proj.meta.location} · ${proj.meta.director} · ${proj.meta.workModel} · ${proj.meta.invoicing}</div></div>
+    <div><div class="stitle" style="display:flex;align-items:center;gap:9px"><span style="width:11px;height:11px;border-radius:50%;background:${proj.color};display:inline-block;flex-shrink:0"></span>${pn} ${modelBadge}</div>
+    <div class="ssub">${proj.meta.location} · ${proj.meta.director} · ${proj.meta.workModel}</div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn btn-ghost btn-sm" onclick="openEditProject('${pn}')">✏ Edit</button>
       <button class="btn btn-outline btn-sm" onclick="openAddAgent('${pn}')">+ Agent</button>
       <button class="btn btn-outline btn-sm" onclick="openMgmtModal('${pn}')">⚙ Mgmt & Costs</button>
-      <button class="btn btn-gold btn-sm" onclick="buildProjPage('${pn}');showToast('Updated ✓','ok')">⟳ Update</button>
     </div>
   </div>
   <div class="sbar">
@@ -1097,22 +1185,16 @@ function buildProjPage(pn){
     <div class="sbi"><div class="l">Billing FTE</div><div class="v">${r.annual.avgFTE}</div></div>
     ${r.annual.avgBufFTE>0?`<div class="sbsep"></div><div class="sbi"><div class="l" style="color:var(--amber)">Buffer FTE</div><div class="v" style="color:var(--amber)">${r.annual.avgBufFTE}</div></div>`:''}
   </div>
-  <div class="card"><div class="ct">Revenue Rate Configuration</div><div class="cs">EUR rate per productive hour per FTE — auto-converts to TRY via FX</div>
-    <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Annual</th></tr></thead><tbody>
-      <tr class="revr"><td>EUR Rate / Hour</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:60px" data-p="${pn}" data-rev="${mi}" value="${proj.revEUR[mi]}" onchange="onRev(this)" type="number" min="0" step="0.5"></td>`).join('')}<td class="mn">${(proj.revEUR.reduce((s,v)=>s+v,0)/12).toFixed(0)} avg</td></tr>
-      <tr><td>FX Rate</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.fx.toFixed(2)}</td>`).join('')}<td class="mn">${(FX.reduce((s,v)=>s+v,0)/12).toFixed(2)}</td></tr>
-      <tr class="revr"><td style="font-weight:700">Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos" style="font-weight:600">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
-    </tbody></table></div>
-  </div>
-  <div class="card"><div class="ct">Headcounts per Month</div><div class="cs">Click any cell to edit directly</div>
+  ${revConfigCard}
+  <div class="card"><div class="ct">Headcounts per Month</div><div class="cs">Edit directly — revenue recalculates instantly</div>
     <div class="tw"><table class="bt" style="min-width:1000px"><thead><tr><th style="text-align:left">Agent Group</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Total</th><th></th></tr></thead><tbody>${hcRows}</tbody></table></div>
   </div>
   <div class="card"><div class="ct">Salary & Bonus Configuration</div><div class="cs">Edit net salary and bonus per agent group · Buffer agents = cost only, no revenue</div>
     <div class="tw"><table class="bt"><thead><tr><th style="text-align:left">Group</th><th style="text-align:left">Type</th><th style="text-align:right">Net Salary (TRY)</th><th style="text-align:right">Bonus %</th><th style="text-align:right">Employer ×</th><th style="text-align:right">Monthly Cost Est.</th></tr></thead><tbody>
       ${proj.agents.map((ag,i)=>`<tr style="${ag.isBuffer?'background:rgba(245,158,11,.04)':''}"><td>${lBadge(ag.lang)} ${ag.name}</td>
         <td>${ag.isBuffer?`<span style="background:rgba(245,158,11,.2);color:var(--amber);padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700">⚡ Buffer</span>`:`<span style="background:rgba(0,200,150,.15);color:var(--green);padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700">✓ Billing</span>`}</td>
-        <td><input class="ci" style="width:90px" type="number" value="${ag.salary}" onchange="PROJECTS['${pn}'].agents[${i}].salary=parseFloat(this.value)||0"></td>
-        <td><input class="ci" style="width:50px" type="number" value="${(ag.bonus*100).toFixed(1)}" onchange="PROJECTS['${pn}'].agents[${i}].bonus=parseFloat(this.value)/100" step="0.1"></td>
+        <td><input class="ci" style="width:90px" type="number" value="${ag.salary}" onchange="PROJECTS['${pn}'].agents[${i}].salary=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></td>
+        <td><input class="ci" style="width:50px" type="number" value="${(ag.bonus*100).toFixed(1)}" onchange="PROJECTS['${pn}'].agents[${i}].bonus=parseFloat(this.value)/100;scheduleRecalc('${pn}')" step="0.1"></td>
         <td class="mn" style="color:var(--text2)">×${(1.25*(1+ag.bonus)).toFixed(3)}</td>
         <td class="mn" style="font-weight:600;color:${ag.isBuffer?'var(--amber)':'var(--green)'}">${fmtK(Math.max(ag.salary,ASM.minWage)*1.25*(1+ag.bonus)*ag.hc.reduce((s,h)=>s+h,0)/12)} ₺/mo${ag.isBuffer?' (cost only)':''}</td>
       </tr>`).join('')}
@@ -1278,6 +1360,13 @@ function renderVariance(){
     {label:'Budget GM (K₺)',data:budGMData,borderColor:'#4a6cf7',borderDash:[6,3],backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:2},
     {label:'Actual GM (K₺)',data:actGMData,borderColor:'#00c896',backgroundColor:'rgba(0,200,150,.1)',fill:true,tension:.3,pointRadius:5,borderWidth:2.5,pointBackgroundColor:'#00c896'},
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:t2,font:{size:11}}}},scales:{y:{ticks:{callback:v=>v+'K',color:t2},grid:{color:bc}},x:{ticks:{color:t2},grid:{display:false}}}}});
+}
+
+function setActual(pn,mi,type,val){
+  if(!ACTUALS[pn])ACTUALS[pn]={};
+  if(!ACTUALS[pn][mi])ACTUALS[pn][mi]={};
+  ACTUALS[pn][mi][type]=parseFloat(val)||null;
+  scheduleRecalc(null);
 }
 
 function setActualAndRefresh(pn,mi,type,val){
@@ -1579,23 +1668,25 @@ function saveComment(){
 // ══════════════════ ASSUMPTIONS ══════════════════
 function renderAssumptions(){
   const defs=[
-    {k:'minWage',l:'Min. Wage Net 2025 (TRY)',s:'₺',h:'Current Turkish minimum net wage',hl:true},
-    {k:'minWageInc',l:'Min. Wage Increase %',s:'%',h:'Expected 2026 increase',pct:true,hl:true},
-    {k:'bonusPct',l:'Agent Bonus %',s:'%',h:'Monthly bonus on gross',pct:true},
-    {k:'mgmtBonus',l:'Mgmt Bonus %',s:'%',h:'Management bonus rate',pct:true},
-    {k:'socialPct',l:'Social Contribution %',s:'%',h:'Employer social security',pct:true},
-    {k:'inflation',l:'Inflation Ratio',s:'%',h:'Annual price inflation estimate',pct:true},
+    {k:'minWage',   l:'Min. Wage Net 2025 (TRY)',s:'₺',h:'Current Turkish minimum net wage',hl:true},
+    {k:'minWageInc',l:'Min. Wage Increase %',    s:'%',h:'Expected 2026 increase',pct:true,hl:true},
+    {k:'bonusPct',  l:'Agent Bonus %',           s:'%',h:'Monthly bonus on gross',pct:true},
+    {k:'mgmtBonus', l:'Mgmt Bonus %',            s:'%',h:'Management bonus rate',pct:true},
+    {k:'socialPct', l:'Social Contribution %',   s:'%',h:'Employer social security',pct:true},
+    {k:'inflation', l:'Inflation Ratio',         s:'%',h:'Annual price inflation estimate',pct:true},
   ];
   document.getElementById('asm-grid').innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:18px">${defs.map(d=>`
     <div style="background:var(--surface);border:1.5px solid ${d.hl?'var(--gold)':'var(--border)'};${d.hl?'background:rgba(240,165,0,.04);':''};border-radius:var(--r);padding:13px 15px">
       <div style="font-size:10px;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">${d.l}</div>
       <div style="display:flex;align-items:baseline;gap:3px">
-        <input style="width:100%;border:none;background:transparent;font-family:var(--fh);font-size:19px;font-weight:700;color:var(--text);outline:none" id="asm-${d.k}" type="number" step="${d.pct?0.5:50}" value="${d.pct?(ASM[d.k]*100).toFixed(1):ASM[d.k]}" onchange="ASM['${d.k}']=parseFloat(this.value)${d.pct?'/100':''}||0">
+        <input style="width:100%;border:none;background:transparent;font-family:var(--fh);font-size:19px;font-weight:700;color:var(--text);outline:none" id="asm-${d.k}" type="number" step="${d.pct?0.5:50}"
+          value="${d.pct?(ASM[d.k]*100).toFixed(1):ASM[d.k]}"
+          onchange="ASM['${d.k}']=parseFloat(this.value)${d.pct?'/100':''}||0;scheduleRecalc(null)">
         <span style="font-size:14px;color:var(--text2);font-weight:600">${d.s}</span>
       </div>
       <div style="font-size:11px;color:var(--text2);margin-top:3px">${d.h}</div>
     </div>`).join('')}</div>`;
-  document.getElementById('fx-tbl').innerHTML=`<table class="bt" style="min-width:700px"><thead><tr>${MONTHS.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody><tr>${FX.map((v,i)=>`<td><input class="ci" style="width:62px;color:var(--blue)" type="number" step="0.01" value="${v.toFixed(2)}" onchange="FX[${i}]=parseFloat(this.value)||43.5"></td>`).join('')}</tr></tbody></table>`;
+  document.getElementById('fx-tbl').innerHTML=`<table class="bt" style="min-width:700px"><thead><tr>${MONTHS.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody><tr>${FX.map((v,i)=>`<td><input class="ci" style="width:62px;color:var(--blue)" type="number" step="0.01" value="${v.toFixed(2)}" onchange="FX[${i}]=parseFloat(this.value)||43.5;scheduleRecalc(null)"></td>`).join('')}</tr></tbody></table>`;
 }
 
 // ══════════════════ KPI TARGETS ══════════════════
@@ -1617,19 +1708,33 @@ function saveTargets(){
 }
 
 // ══════════════════ PROJECT MGMT ══════════════════
+function showInvModelHint(){
+  const v=document.getElementById('pj-iv')?.value;
+  const hints={'Production Hours':'Revenue = Rate (EUR/hr) × Productive Days × 8h × Billing FTE. Set rate per month in the project Revenue Config.',
+    'FTE':'Revenue = Fixed Price (EUR) × Billing FTE per month. Set monthly FTE price in Revenue Config. No hours tracking needed.',
+    'ICM':'Revenue = Base (EUR/month) + Performance Bonus. Bonus = bonusPct × (achieved/target − 1) × base. Enter target units and actual achieved per month.'};
+  const el=document.getElementById('pj-inv-hint');if(el)el.textContent=hints[v]||'';
+}
 let editPJ=null;
-function openAddProject(){editPJ=null;document.getElementById('mpjt').textContent='Add Project';['pj-n','pj-cl','pj-lo','pj-di','pj-om'].forEach(id=>document.getElementById(id).value='');O('m-proj');}
-function openEditProject(pn){editPJ=pn;const proj=PROJECTS[pn];document.getElementById('mpjt').textContent='Edit Project';document.getElementById('pj-n').value=pn;document.getElementById('pj-cl').value=proj.meta.client||'';document.getElementById('pj-lo').value=proj.meta.location||'';document.getElementById('pj-di').value=proj.meta.director||'';document.getElementById('pj-om').value=proj.meta.opsMgr||'';document.getElementById('pj-wm').value=proj.meta.workModel||'WFH';document.getElementById('pj-iv').value=proj.meta.invoicing||'Per Hours / Sales';document.getElementById('pj-co').value=proj.color||'#4a6cf7';O('m-proj');}
+function openAddProject(){editPJ=null;document.getElementById('mpjt').textContent='Add Project';['pj-n','pj-cl','pj-lo','pj-di','pj-om'].forEach(id=>document.getElementById(id).value='');document.getElementById('pj-iv').value='Production Hours';document.getElementById('pj-wm').value='WFH';document.getElementById('pj-co').value='#4a6cf7';showInvModelHint();O('m-proj');}
+function openEditProject(pn){editPJ=pn;const proj=PROJECTS[pn];document.getElementById('mpjt').textContent='Edit Project';document.getElementById('pj-n').value=pn;document.getElementById('pj-cl').value=proj.meta.client||'';document.getElementById('pj-lo').value=proj.meta.location||'';document.getElementById('pj-di').value=proj.meta.director||'';document.getElementById('pj-om').value=proj.meta.opsMgr||'';document.getElementById('pj-wm').value=proj.meta.workModel||'WFH';document.getElementById('pj-iv').value=proj.invoiceModel||'Production Hours';document.getElementById('pj-co').value=proj.color||'#4a6cf7';showInvModelHint();O('m-proj');}
 function saveProject(){
   const name=document.getElementById('pj-n').value.trim();if(!name){showToast('Enter project name','err');return;}
-  const meta={client:document.getElementById('pj-cl').value,location:document.getElementById('pj-lo').value,director:document.getElementById('pj-di').value,opsMgr:document.getElementById('pj-om').value,workModel:document.getElementById('pj-wm').value,invoicing:document.getElementById('pj-iv').value};
+  const invoiceModel=document.getElementById('pj-iv').value;
+  const meta={client:document.getElementById('pj-cl').value,location:document.getElementById('pj-lo').value,director:document.getElementById('pj-di').value,opsMgr:document.getElementById('pj-om').value,workModel:document.getElementById('pj-wm').value,invoicing:invoiceModel};
   const color=document.getElementById('pj-co').value;
   if(editPJ){
-    if(editPJ!==name){PROJECTS[name]={...PROJECTS[editPJ],meta,color};delete PROJECTS[editPJ];}
-    else{PROJECTS[name].meta=meta;PROJECTS[name].color=color;}
+    if(editPJ!==name){PROJECTS[name]={...PROJECTS[editPJ],meta,color,invoiceModel};delete PROJECTS[editPJ];}
+    else{PROJECTS[name].meta=meta;PROJECTS[name].color=color;PROJECTS[name].invoiceModel=invoiceModel;}
     addLog('Project Edit',name,'info');showToast('Project updated ✓','ok');
   } else {
-    PROJECTS[name]={id:'p'+Date.now(),color,meta,agents:[],mgmt:[{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},revEUR:Array(12).fill(135),overtimeH:Array(12).fill(0)};
+    PROJECTS[name]={id:'p'+Date.now(),color,meta,invoiceModel,
+      agents:[],mgmt:[{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],
+      costs:{food:88.05,transport:745,it:500,other:300},
+      rateEUR:Array(12).fill(135),
+      ftePriceEUR:Array(12).fill(3200),
+      icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},
+      overtimeH:Array(12).fill(0)};
     addLog('Project Add',name,'info');showToast(name+' created ✓','ok');
   }
   M('m-proj');buildAllProjPages();renderSidebarNav();recalcAll();autoSave();
@@ -1676,10 +1781,82 @@ function saveMgmt(){
 }
 
 // ══════════════════ CELL EVENTS ══════════════════
-function onHC(el){const v=parseInt(el.value)||0;PROJECTS[el.dataset.p].agents[+el.dataset.a].hc[+el.dataset.m]=v;addLog('HC Change',`${el.dataset.p} Agent[${el.dataset.a}] M${+el.dataset.m+1}=${v}`,'info');}
-function onRev(el){PROJECTS[el.dataset.p].revEUR[+el.dataset.rev]=parseFloat(el.value)||0;}
-function setActual(pn,mi,type,val){if(!ACTUALS[pn])ACTUALS[pn]={};if(!ACTUALS[pn][mi])ACTUALS[pn][mi]={};ACTUALS[pn][mi][type]=parseFloat(val)||null;addLog('Actual Entry',`${pn} M${mi+1} ${type}=${val}`,'info');autoSave();}
-function onFxChange(){const v=parseFloat(document.getElementById('fx-rate').value)||43.5;const avg=FX.reduce((s,x)=>s+x,0)/12;const r=v/avg;FX=FX.map(x=>parseFloat((x*r).toFixed(2)));addLog('FX Change','Base rate set to '+v,'warn');showToast('FX updated','ok');}
+// ══════════════════ AUTO-RECALC ENGINE ══════════════════
+// Debounced — fires 400ms after last change, smooth and seamless
+let _recalcTimer = null;
+function scheduleRecalc(pn) {
+  clearTimeout(_recalcTimer);
+  _recalcTimer = setTimeout(() => {
+    if (pn) buildProjPage(pn); // fast: only rebuild the changed project
+    renderDashboard();          // always update dashboard
+    // Update other visible pages lazily
+    const active = document.querySelector('.page.active');
+    if (active) {
+      const id = active.id.replace('page-','');
+      if (id==='costs')   renderCosts();
+      if (id==='monthly') renderMonthly();
+      if (id==='variance'){initVarianceProjectSel();renderVariance();}
+      if (id==='headcount')renderHeadcount();
+      if (id==='kpi')     renderKPI();
+      if (id==='risks')   renderRisks();
+      if (id==='scenarios')renderScenarios();
+    }
+    autoSave();
+  }, 400);
+}
+
+// HC cell changed
+function onHC(el) {
+  const v = parseInt(el.value) || 0;
+  PROJECTS[el.dataset.p].agents[+el.dataset.a].hc[+el.dataset.m] = v;
+  scheduleRecalc(el.dataset.p);
+}
+
+// Revenue rate cell changed — handles all 3 models
+function onRateChange(el) {
+  const pn   = el.dataset.p;
+  const field = el.dataset.field;
+  const mi   = parseInt(el.dataset.mi);
+  const val  = parseFloat(el.value) || 0;
+  const proj = PROJECTS[pn];
+  if (!proj) return;
+
+  if (field === 'rateEUR') {
+    if (!proj.rateEUR) proj.rateEUR = Array(12).fill(135);
+    proj.rateEUR[mi] = val;
+  } else if (field === 'ftePriceEUR') {
+    if (!proj.ftePriceEUR) proj.ftePriceEUR = Array(12).fill(3200);
+    proj.ftePriceEUR[mi] = val;
+  } else if (field === 'icm_baseEUR') {
+    if (!proj.icmConfig) proj.icmConfig = {};
+    if (!proj.icmConfig.baseEUR) proj.icmConfig.baseEUR = Array(12).fill(50000);
+    proj.icmConfig.baseEUR[mi] = val;
+  } else if (field === 'icm_bonusPct') {
+    if (!proj.icmConfig) proj.icmConfig = {};
+    if (!proj.icmConfig.bonusPct) proj.icmConfig.bonusPct = Array(12).fill(0.15);
+    proj.icmConfig.bonusPct[mi] = val / 100;
+  } else if (field === 'icm_targetUnits') {
+    if (!proj.icmConfig) proj.icmConfig = {};
+    if (!proj.icmConfig.targetUnits) proj.icmConfig.targetUnits = Array(12).fill(1000);
+    proj.icmConfig.targetUnits[mi] = val;
+  } else if (field === 'icm_actualUnits') {
+    if (!proj.icmConfig) proj.icmConfig = {};
+    if (!proj.icmConfig.actualUnits) proj.icmConfig.actualUnits = Array(12).fill(0);
+    proj.icmConfig.actualUnits[mi] = val;
+  }
+  scheduleRecalc(pn);
+}
+
+// Legacy onRev — kept for any residual references
+function onRev(el) { onRateChange({dataset:{p:el.dataset.p,field:'rateEUR',mi:el.dataset.rev},value:el.value}); }
+function onFxChange() {
+  const v = parseFloat(document.getElementById('fx-rate').value) || 43.5;
+  const avg = FX.reduce((s,x)=>s+x,0)/12;
+  const ratio = v/avg;
+  FX = FX.map(x => parseFloat((x*ratio).toFixed(2)));
+  addLog('FX Change','Base rate set to '+v,'warn');
+  scheduleRecalc(null);
+}
 
 // ══════════════════ EXCEL EXPORT ══════════════════
 function exportExcel(){
@@ -1835,18 +2012,22 @@ function renderSidebarNav(){
 
 // ══════════════════ RECALC ══════════════════
 function recalcAll(){
+  // Full synchronous rebuild — used after bulk changes (project add/remove, load from DB)
   renderDashboard();
   Object.keys(PROJECTS).forEach(p=>buildProjPage(p));
-  if(document.getElementById('page-monthly').classList.contains('active'))renderMonthly();
-  if(document.getElementById('page-costs').classList.contains('active'))renderCosts();
-  if(document.getElementById('page-headcount').classList.contains('active'))renderHeadcount();
-  if(document.getElementById('page-kpi').classList.contains('active'))renderKPI();
-  if(document.getElementById('page-risks').classList.contains('active'))renderRisks();
-  if(document.getElementById('page-scenarios').classList.contains('active'))renderScenarios();
-  if(document.getElementById('page-variance').classList.contains('active')){initVarianceProjectSel();renderVariance();}
-  addLog('Recalc','Full recalculation triggered by '+(ME?.name||'user'),'info');
+  const active=document.querySelector('.page.active');
+  if(active){
+    const id=active.id.replace('page-','');
+    if(id==='monthly')renderMonthly();
+    if(id==='costs')renderCosts();
+    if(id==='headcount')renderHeadcount();
+    if(id==='kpi')renderKPI();
+    if(id==='risks')renderRisks();
+    if(id==='scenarios')renderScenarios();
+    if(id==='variance'){initVarianceProjectSel();renderVariance();}
+    if(id==='executive')renderExecutive();
+  }
   autoSave();
-  showToast('Recalculated ✓','ok');
 }
 
 // ══════════════════ HELPERS ══════════════════
