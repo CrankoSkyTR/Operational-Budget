@@ -302,22 +302,27 @@ create policy "Auth users full access" on bpo_state
 
 create table if not exists bpo_users (
   id uuid references auth.users primary key,
-  name text, role text default 'Viewer',
+  name text,
+  role text default 'Manager',
+  assigned_project text default null,
   created_at timestamptz default now()
 );
 alter table bpo_users enable row level security;
 create policy "Own profile" on bpo_users
   for select using (auth.uid() = id);
-create policy "Admins manage all" on bpo_users
+create policy "Sr Manager manage all" on bpo_users
   for all using (
     exists (select 1 from bpo_users u
-      where u.id = auth.uid() and u.role = 'Administrator')
+      where u.id = auth.uid()
+      and u.role in ('Sr. Manager','Administrator'))
   );
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer as $$
 begin
   insert into public.bpo_users(id, name, role)
-  values (new.id, coalesce(new.raw_user_meta_data->>'name', split_part(new.email,'@',1)), 'Viewer')
+  values (new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email,'@',1)),
+    'Manager')
   on conflict (id) do nothing;
   return new;
 end;$$;
@@ -345,17 +350,10 @@ create trigger on_auth_user_created
   <div class="lcard">
     <div class="l-logo"><div class="l-mark">B</div><h1>BPO Manager</h1><p>OPERATIONAL BUDGET PLATFORM</p></div>
     <div class="l-hr"></div>
-    <div id="sb-login-banner" style="display:none;margin-bottom:14px;padding:10px 13px;border-radius:8px;background:rgba(0,200,150,.12);border:1px solid rgba(0,200,150,.3);font-size:12px;color:#00c896">✓ Supabase connected — login with your account</div>
-    <div id="sb-login-info" style="display:none;margin-bottom:14px;padding:9px 13px;border-radius:8px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);font-size:12px;color:var(--amber)">⚡ Demo mode — data saved locally only. <span style="cursor:pointer;text-decoration:underline" onclick="O('m-sb-setup')">Connect Supabase</span> to persist data.</div>
     <div class="lg"><label>Email</label><input type="email" id="l-em" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <div class="lg"><label>Password</label><input type="password" id="l-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <button class="l-btn" onclick="doLogin()">Sign In →</button>
     <div class="l-err" id="l-er"></div>
-    <div class="l-hr" style="margin:16px 0 12px"></div>
-    <div style="display:flex;gap:8px;justify-content:center">
-      <button class="btn btn-ghost btn-sm" onclick="O('m-sb-setup')" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.6)">🔌 Connect Supabase</button>
-      <button class="btn btn-ghost btn-sm" onclick="demoLogin()" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.6)">▶ Demo Mode</button>
-    </div>
   </div>
 </div>
 
@@ -392,7 +390,6 @@ create trigger on_auth_user_created
     <div><div class="tb-title" id="pg-title">Dashboard</div><div class="tb-sub" id="pg-sub">2026 Operational Budget — All Projects</div></div>
     <div class="tbr">
       <div class="tswitch"><button class="tb-btn active" data-theme="dark" onclick="setTheme('dark')" title="Dark"></button><button class="tb-btn" data-theme="light" onclick="setTheme('light')" title="Light"></button><button class="tb-btn" data-theme="corporate" onclick="setTheme('corporate')" title="Corporate"></button><button class="tb-btn" data-theme="emerald" onclick="setTheme('emerald')" title="Emerald"></button></div>
-      <button id="sb-topbar-btn" class="btn btn-ghost btn-sm" onclick="O('m-sb-setup')" style="font-size:11px">🔌 Supabase</button>
       <button class="btn btn-ghost btn-sm" onclick="openComment()">📝 Note</button>
       <button class="btn btn-outline btn-sm" onclick="exportExcel()">⬇ Excel</button>
       <button class="btn btn-blue btn-sm" onclick="exportPDF()">⬇ PDF</button>
@@ -517,10 +514,64 @@ create trigger on_auth_user_created
 
     <!-- ═══ USER MANAGEMENT ═══ -->
     <div class="page" id="page-users">
-      <div class="shead"><div><div class="stitle">User Management</div><div class="ssub">Manage team accounts via Supabase Auth · Admins only</div></div>
-        <button class="btn btn-gold btn-sm" onclick="O('m-invite')">+ Invite User</button>
+      <div class="shead">
+        <div><div class="stitle">User Management</div><div class="ssub">Account creation and role assignment · Sr. Manager only</div></div>
+        <button class="btn btn-gold btn-sm" onclick="openCreateUser()">＋ Create Account</button>
       </div>
-      <div id="users-content"><div class="alert alert-info">Connect Supabase to manage user accounts.</div></div>
+
+      <!-- Role overview cards -->
+      <div class="g3" style="margin-bottom:20px">
+        <div class="card" style="border-top:3px solid var(--gold)">
+          <div style="font-size:22px;margin-bottom:8px">👔</div>
+          <div class="ct">Sr. Manager</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:6px">
+            Full access to all sections<br>
+            Create &amp; manage user accounts<br>
+            Edit all budgets, costs, agents<br>
+            View Executive Summary &amp; KPIs<br>
+            Export Excel &amp; PDF reports<br>
+            Configure assumptions &amp; targets<br>
+            Scenario planning &amp; risk register<br>
+            Audit log full access
+          </div>
+        </div>
+        <div class="card" style="border-top:3px solid var(--blue)">
+          <div style="font-size:22px;margin-bottom:8px">📋</div>
+          <div class="ct">Manager</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:6px">
+            View all dashboard &amp; reports<br>
+            Edit headcounts &amp; revenue rates<br>
+            Enter actual figures (variance)<br>
+            Add management notes<br>
+            Export Excel &amp; PDF<br>
+            View scenarios &amp; risk register<br>
+            <span style="color:var(--red)">✗ Cannot create accounts</span><br>
+            <span style="color:var(--red)">✗ Cannot change assumptions</span>
+          </div>
+        </div>
+        <div class="card" style="border-top:3px solid var(--green)">
+          <div style="font-size:22px;margin-bottom:8px">🎧</div>
+          <div class="ct">Team Leader</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:6px">
+            View own project dashboard<br>
+            View headcount plan (own project)<br>
+            View monthly P&amp;L (own project)<br>
+            <span style="color:var(--green)">✓ GDPR-safe: no personal data</span><br>
+            <span style="color:var(--green)">✓ Only aggregate team numbers</span><br>
+            <span style="color:var(--red)">✗ No salaries or individual costs</span><br>
+            <span style="color:var(--red)">✗ No other projects visible</span><br>
+            <span style="color:var(--red)">✗ No account management</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GDPR note -->
+      <div class="alert alert-info" style="margin-bottom:16px">
+        <div><strong>GDPR — Team Leader access:</strong> Team Leaders only see aggregate budget numbers for their own project (headcount totals, team revenue, cost totals). No individual salary data, no names, no personal information is shown. This is safe under GDPR Art. 6(1)(b) — processing necessary for contract performance. Individual salary records stay Sr. Manager / Manager only.</div>
+      </div>
+
+      <!-- User table -->
+      <div id="users-content"><div style="color:var(--text2);padding:16px;font-size:13px">Lade Benutzer…</div></div>
     </div>
 
   </div><!-- /content -->
@@ -528,30 +579,70 @@ create trigger on_auth_user_created
 </div><!-- /layout -->
 </div><!-- /app -->
 
-<!-- Invite User Modal -->
-<div class="mo" id="m-invite">
-  <div class="mbox">
-    <button class="mcl" onclick="M('m-invite')">✕</button>
-    <h2 class="mh2">Invite User</h2>
-    <p class="mp">Send an invitation email via Supabase Auth. The invited user sets their own password on first login.</p>
+<!-- Create Account Modal -->
+<div class="mo" id="m-create-user">
+  <div class="mbox" style="width:560px">
+    <button class="mcl" onclick="M('m-create-user')">✕</button>
+    <h2 class="mh2">Create Account</h2>
+    <p class="mp">Create a new user account. The user will receive a password setup email from Supabase.</p>
     <div class="fr">
-      <div class="ff"><label>Email Address</label><input id="inv-em" type="email" placeholder="colleague@company.com"></div>
-      <div class="ff"><label>Full Name</label><input id="inv-nm" placeholder="Full Name"></div>
+      <div class="ff"><label>Full Name</label><input id="cu-name" placeholder="e.g. Murat Erdemesinli"></div>
+      <div class="ff"><label>Email Address</label><input id="cu-email" type="email" placeholder="user@company.com"></div>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Temporary Password</label><input id="cu-pw" type="password" placeholder="Min. 8 characters"></div>
+      <div class="ff"><label>Confirm Password</label><input id="cu-pw2" type="password" placeholder="Repeat password"></div>
     </div>
     <div class="fr">
       <div class="ff"><label>Role</label>
-        <select id="inv-rl">
-          <option value="Viewer">Viewer — read only</option>
-          <option value="Manager">Manager — edit budgets</option>
-          <option value="Administrator">Administrator — full access</option>
+        <select id="cu-role" onchange="updateRoleDesc()">
+          <option value="Sr. Manager">👔 Sr. Manager — Full access</option>
+          <option value="Manager" selected>📋 Manager — Edit budgets</option>
+          <option value="Team Leader">🎧 Team Leader — Own project view</option>
+        </select>
+      </div>
+      <div class="ff"><label>Assigned Project (Team Leader only)</label>
+        <select id="cu-proj"><option value="">— All projects —</option></select>
+      </div>
+    </div>
+    <div id="cu-role-desc" style="padding:10px 13px;border-radius:8px;background:var(--surface3);font-size:12px;color:var(--text2);margin-bottom:4px;line-height:1.6"></div>
+    <div style="display:flex;gap:7px;margin-top:14px">
+      <button class="btn btn-gold" onclick="createUser()">Create Account</button>
+      <button class="btn btn-ghost" onclick="M('m-create-user')">Cancel</button>
+    </div>
+    <div id="cu-status" style="margin-top:10px;font-size:12px;font-weight:500"></div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="mo" id="m-edit-user">
+  <div class="mbox" style="width:480px">
+    <button class="mcl" onclick="M('m-edit-user')">✕</button>
+    <h2 class="mh2">Edit Account</h2>
+    <input type="hidden" id="eu-id">
+    <div class="fr">
+      <div class="ff"><label>Full Name</label><input id="eu-name" placeholder="Name"></div>
+      <div class="ff"><label>Role</label>
+        <select id="eu-role">
+          <option value="Sr. Manager">👔 Sr. Manager</option>
+          <option value="Manager">📋 Manager</option>
+          <option value="Team Leader">🎧 Team Leader</option>
         </select>
       </div>
     </div>
-    <div style="display:flex;gap:7px;margin-top:12px">
-      <button class="btn btn-gold" onclick="inviteUser()">Send Invitation</button>
-      <button class="btn btn-ghost" onclick="M('m-invite')">Cancel</button>
+    <div class="fr">
+      <div class="ff"><label>Assigned Project (Team Leader only)</label>
+        <select id="eu-proj"><option value="">— All projects —</option></select>
+      </div>
+      <div class="ff"><label>New Password (leave blank to keep)</label>
+        <input id="eu-pw" type="password" placeholder="New password…">
+      </div>
     </div>
-    <div id="inv-status" style="margin-top:10px;font-size:12px;font-weight:500"></div>
+    <div style="display:flex;gap:7px;margin-top:14px">
+      <button class="btn btn-gold" onclick="saveEditUser()">Save Changes</button>
+      <button class="btn btn-ghost" onclick="M('m-edit-user')">Cancel</button>
+    </div>
+    <div id="eu-status" style="margin-top:10px;font-size:12px;font-weight:500"></div>
   </div>
 </div>
 
@@ -658,17 +749,8 @@ function disconnectSB(){
   document.getElementById('sb-status').textContent='Getrennt — Seite neu laden für Demo-Modus.';
   updateSBTopbarBtn();showToast('Supabase getrennt','ok');
 }
-function updateSBTopbarBtn(){
-  const btn=document.getElementById('sb-topbar-btn');if(!btn)return;
-  if(SB_MODE){btn.textContent='🟢 Supabase';btn.style.color='var(--green)';btn.style.borderColor='rgba(0,200,150,.4)';}
-  else{btn.textContent='🔌 Supabase';btn.style.color='';btn.style.borderColor='';}
-}
-function updateLoginBanner(){
-  const b=document.getElementById('sb-login-banner');
-  const i=document.getElementById('sb-login-info');
-  if(b)b.style.display=SB_MODE?'block':'none';
-  if(i)i.style.display=SB_MODE?'none':'block';
-}
+function updateSBTopbarBtn(){ /* topbar btn removed */ }
+function updateLoginBanner(){ /* banners removed */ }
 
 // ── Save / Load ──
 async function sbSave(){
@@ -676,7 +758,7 @@ async function sbSave(){
   const payload={id:'main',data:{PROJECTS,ASM,FX,TARGETS,SCENARIOS,ACTUALS,AUDIT_LOG,COMMENTS},updated_at:new Date().toISOString()};
   const{error}=await sbUpsert('bpo_state',payload);
   if(error)console.warn('Save failed:',error.message);
-  else{const btn=document.getElementById('sb-topbar-btn');if(btn){const old=btn.textContent;btn.textContent='✓ Saved';setTimeout(()=>btn.textContent=old,1500);}}
+  else{ showToast('☁ Gespeichert','ok'); }
 }
 async function sbLoad(){
   if(!SB_MODE)return false;
@@ -713,7 +795,7 @@ async function doLogin(){
     localStorage.setItem('bpo_sb_token',SB_TOKEN);
     const{data:profiles}=await sbSelect('bpo_users','id=eq.'+data.user.id);
     const p=profiles?.[0];
-    ME={id:data.user.id,email:em,name:p?.name||em.split('@')[0],role:p?.role||'Viewer'};
+    ME={id:data.user.id,email:em,name:p?.name||em.split('@')[0],role:p?.role||'Manager',assignedProject:p?.assigned_project||null};
     await sbLoad();
     launchApp();
   }else{
@@ -737,13 +819,47 @@ function launchApp(){
   document.getElementById('u-av').textContent=ME.name[0].toUpperCase();
   document.getElementById('u-nm').textContent=ME.name;
   document.getElementById('u-rl').textContent=ME.role+(SB_MODE?' · ☁':' · Local');
-  if(ME.role==='Administrator'){
-    const s=document.getElementById('nav-admin-sec');
-    const u=document.getElementById('nav-users');
-    if(s)s.style.display='';if(u)u.style.display='';
+
+  const role=ME.role;
+  const isSrMgr = role==='Sr. Manager' || role==='Administrator';
+  const isMgr   = isSrMgr || role==='Manager';
+  const isTL    = role==='Team Leader';
+
+  // Admin nav — Sr. Manager only
+  const s=document.getElementById('nav-admin-sec');
+  const u=document.getElementById('nav-users');
+  if(s)s.style.display=isSrMgr?'':'none';
+  if(u)u.style.display=isSrMgr?'':'none';
+
+  // Assumptions — Sr. Manager only (hides nav item for others)
+  const navAsm=document.querySelector('.ni[onclick="SP(\'assumptions\')"]');
+  if(navAsm)navAsm.style.display=isSrMgr?'':'none';
+
+  // Scenario planning — Sr. Manager + Manager
+  const navSc=document.querySelector('.ni[onclick="SP(\'scenarios\')"]');
+  if(navSc)navSc.style.display=isMgr?'':'none';
+
+  // Team Leader: hide irrelevant nav items entirely
+  if(isTL){
+    const hideForTL=['executive','scenarios','variance','costs','monthly','headcount','kpi','risks','audit','assumptions'];
+    hideForTL.forEach(pg=>{
+      const ni=document.querySelector(`.ni[onclick="SP('${pg}')"]`);
+      if(ni)ni.style.display='none';
+    });
+    // Hide the add-project button
+    const addProjBtn=document.querySelector('.ns-btn');
+    if(addProjBtn)addProjBtn.style.display='none';
+    // Hide topbar buttons irrelevant for TL
+    document.querySelectorAll('.btn-blue,.btn-outline').forEach(b=>b.style.display='none');
   }
-  addLog('Login','User: '+ME.name+(SB_MODE?' (Supabase)':' (Demo)'),'info');
+
+  addLog('Login','User: '+ME.name+' ('+ME.role+')'+(SB_MODE?' (Supabase)':' (Demo)'),'info');
   bootApp();
+
+  // Team Leader: auto-navigate to their assigned project
+  if(isTL && ME.assignedProject && PROJECTS[ME.assignedProject]){
+    setTimeout(()=>SP('proj-'+PROJECTS[ME.assignedProject].id),100);
+  }
 }
 
 // ══════════════════ THEME ══════════════════
@@ -1664,6 +1780,22 @@ function exportPDF(){
 const PT={dashboard:['Dashboard','2026 Budget — All Projects'],executive:['Executive Summary','Print-ready management overview'],scenarios:['Scenario Planning','What-if analysis'],variance:['Variance Analysis','Budget vs Actual'],costs:['Cost Breakdown','By project, language and category'],monthly:['Monthly View','Revenue & Costs per month'],headcount:['Headcount Plan','FTE across projects and languages'],kpi:['KPI Tracker','Performance vs targets'],risks:['Risk Register','Auto-generated and manual risks'],audit:['Audit Log','Change history and notes'],assumptions:['Assumptions','Model inputs and FX schedule'],users:['User Management','Team accounts and roles']};
 
 function SP(name){
+  // Role-based access guard
+  const role=ME?.role||'Manager';
+  const isSrMgr=role==='Sr. Manager'||role==='Administrator';
+  const isMgr=isSrMgr||role==='Manager';
+  const isTL=role==='Team Leader';
+  const tlBlocked=['executive','scenarios','variance','costs','monthly','headcount','kpi','risks','audit','assumptions','users'];
+  if(isTL && tlBlocked.includes(name)){showToast('Kein Zugriff für Team Leader','err');return;}
+  if(!isSrMgr && name==='assumptions'){showToast('Nur Sr. Manager','err');return;}
+  if(!isSrMgr && name==='users'){showToast('Nur Sr. Manager','err');return;}
+  // TL can only see their assigned project
+  if(isTL && name.startsWith('proj-')){
+    const projId=name.replace('proj-','');
+    const assignedId=ME.assignedProject?PROJECTS[ME.assignedProject]?.id:null;
+    if(assignedId && projId!==assignedId){showToast('Nur dein Projekt sichtbar','err');return;}
+  }
+
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   const pg=document.getElementById('page-'+name);if(pg)pg.classList.add('active');
@@ -1686,12 +1818,19 @@ function SP(name){
 }
 
 function renderSidebarNav(){
-  document.getElementById('proj-nav').innerHTML=Object.entries(PROJECTS).map(([pn,proj])=>`
-    <div class="ni" onclick="SP('proj-${proj.id}')" id="nav-proj-${proj.id}">
+  const role=ME?.role||'Manager';
+  const isSrMgr=role==='Sr. Manager'||role==='Administrator';
+  const isTL=role==='Team Leader';
+  document.getElementById('proj-nav').innerHTML=Object.entries(PROJECTS).map(([pn,proj])=>{
+    // TL: only show assigned project
+    if(isTL && ME.assignedProject && pn!==ME.assignedProject) return '';
+    const canEdit=!isTL;
+    return`<div class="ni" onclick="SP('proj-${proj.id}')" id="nav-proj-${proj.id}">
       <span class="ic" style="color:${proj.color}">●</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${pn}</span>
-      <span class="nia"><button class="nab" onclick="event.stopPropagation();openEditProject('${pn}')" title="Edit">✏</button><button class="nab d" onclick="event.stopPropagation();removeProject('${pn}')" title="Delete">✕</button></span>
-    </div>`).join('');
+      ${canEdit?`<span class="nia"><button class="nab" onclick="event.stopPropagation();openEditProject('${pn}')" title="Edit">✏</button><button class="nab d" onclick="event.stopPropagation();removeProject('${pn}')" title="Delete">✕</button></span>`:''}
+    </div>`;
+  }).join('');
 }
 
 // ══════════════════ RECALC ══════════════════
@@ -1717,71 +1856,178 @@ function showToast(msg,t=''){const el=document.getElementById('toast');el.textCo
 document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
 // ══════════════════ USER MANAGEMENT ══════════════════
-async function renderUsers(){
-  const el=document.getElementById('users-content');
-  if(!SB_MODE){
-    el.innerHTML=`<div class="alert alert-warn">⚡ Supabase nicht verbunden. <span style="cursor:pointer;text-decoration:underline;color:var(--blue)" onclick="O('m-sb-setup')">Jetzt verbinden</span></div>`;
+const ROLE_DESC={
+  'Sr. Manager':'Full platform access. Can create/manage all accounts, edit all budgets, configure assumptions, view all reports and audit logs.',
+  'Manager':'Can view all dashboards and reports, edit headcounts, revenue rates and actual figures. Cannot create accounts or change core assumptions.',
+  'Team Leader':'Sees only their assigned project — headcount totals, team revenue and cost totals. No individual salary data visible (GDPR-safe). Cannot edit numbers.'
+};
+
+function updateRoleDesc(){
+  const r=document.getElementById('cu-role')?.value;
+  const el=document.getElementById('cu-role-desc');
+  const proj=document.getElementById('cu-proj');
+  if(el)el.textContent=ROLE_DESC[r]||'';
+  if(proj)proj.disabled=(r!=='Team Leader');
+}
+
+function openCreateUser(){
+  // Populate project dropdown
+  const sel=document.getElementById('cu-proj');
+  sel.innerHTML='<option value="">— All projects —</option>'+Object.keys(PROJECTS).map(n=>`<option value="${n}">${n}</option>`).join('');
+  document.getElementById('cu-role').value='Manager';
+  document.getElementById('cu-name').value='';
+  document.getElementById('cu-email').value='';
+  document.getElementById('cu-pw').value='';
+  document.getElementById('cu-pw2').value='';
+  document.getElementById('cu-status').textContent='';
+  updateRoleDesc();
+  O('m-create-user');
+}
+
+async function createUser(){
+  const name  = document.getElementById('cu-name').value.trim();
+  const email = document.getElementById('cu-email').value.trim().toLowerCase();
+  const pw    = document.getElementById('cu-pw').value;
+  const pw2   = document.getElementById('cu-pw2').value;
+  const role  = document.getElementById('cu-role').value;
+  const proj  = document.getElementById('cu-proj').value;
+  const st    = document.getElementById('cu-status');
+  st.textContent=''; st.style.color='var(--red)';
+
+  if(!name)  {st.textContent='Name eingeben.';return;}
+  if(!email) {st.textContent='E-Mail eingeben.';return;}
+  if(!pw)    {st.textContent='Passwort eingeben.';return;}
+  if(pw!==pw2){st.textContent='Passwörter stimmen nicht überein.';return;}
+  if(pw.length<8){st.textContent='Passwort muss mindestens 8 Zeichen haben.';return;}
+
+  st.style.color='var(--text2)'; st.textContent='⏳ Account wird erstellt…';
+
+  // Step 1: Create Supabase Auth user via admin endpoint (service_role not available client-side)
+  // Instead: use signUp which creates an unconfirmed user, or guide via dashboard
+  // We'll use the /auth/v1/signup endpoint (available with anon key) and then upsert profile
+  const signupRes = await fetch(SB_URL+'/auth/v1/signup',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body:JSON.stringify({email,password:pw,data:{name}})
+  });
+  const signupData = await signupRes.json();
+
+  if(!signupRes.ok){
+    st.style.color='var(--red)';
+    st.textContent='✗ '+( signupData.error_description||signupData.msg||signupData.message||'Fehler beim Erstellen');
     return;
   }
+
+  const uid = signupData.user?.id||signupData.id;
+  if(uid){
+    // Upsert profile with role and assigned project
+    await sbUpsert('bpo_users',{id:uid,name,role,assigned_project:proj||null});
+    addLog('User Create',name+' ('+role+')'+(proj?' → '+proj:''),'info');
+    autoSave();
+    st.style.color='var(--green)';
+    st.textContent=`✓ Account für ${name} erstellt! ${signupData.user?.email_confirmed_at?'Direkt einloggbar.':'E-Mail-Bestätigung erforderlich (Supabase Auth-Einstellungen beachten).'}`;
+    setTimeout(()=>{M('m-create-user');renderUsers();},2500);
+  } else {
+    st.style.color='var(--amber)';
+    st.textContent='Account möglicherweise erstellt — bitte im Supabase Dashboard unter Authentication → Users prüfen.';
+  }
+}
+
+function openEditUser(uid,name,role,proj){
+  const sel1=document.getElementById('eu-proj');
+  sel1.innerHTML='<option value="">— All projects —</option>'+Object.keys(PROJECTS).map(n=>`<option value="${n}" ${n===proj?'selected':''}>${n}</option>`).join('');
+  document.getElementById('eu-id').value=uid;
+  document.getElementById('eu-name').value=name;
+  document.getElementById('eu-role').value=role;
+  document.getElementById('eu-pw').value='';
+  document.getElementById('eu-status').textContent='';
+  O('m-edit-user');
+}
+
+async function saveEditUser(){
+  const uid  = document.getElementById('eu-id').value;
+  const name = document.getElementById('eu-name').value.trim();
+  const role = document.getElementById('eu-role').value;
+  const proj = document.getElementById('eu-proj').value;
+  const pw   = document.getElementById('eu-pw').value;
+  const st   = document.getElementById('eu-status');
+  st.style.color='var(--text2)'; st.textContent='⏳ Speichern…';
+  const{error}=await sbPatch('bpo_users','id=eq.'+uid,{name,role,assigned_project:proj||null});
+  if(error){st.style.color='var(--red)';st.textContent='✗ '+error.message;return;}
+  addLog('User Edit',name+' → '+role,'info');autoSave();
+  st.style.color='var(--green)';st.textContent='✓ Gespeichert!';
+  setTimeout(()=>{M('m-edit-user');renderUsers();},1200);
+}
+
+async function renderUsers(){
+  const el=document.getElementById('users-content');
+  if(!SB_MODE){el.innerHTML=`<div class="alert alert-warn">Supabase nicht verbunden.</div>`;return;}
   el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:16px">Lade Benutzer…</div>';
   try{
     const{data:users,error}=await sbSelect('bpo_users','order=created_at.asc');
     if(error)throw new Error(error.message);
-    el.innerHTML=`
-      <div class="card"><div class="ct">Team Accounts (${users.length})</div>
-      <div class="cs">Rollen verwalten · Login via Supabase Auth (Email + Passwort)</div>
+    const roleIcon={'Sr. Manager':'👔','Manager':'📋','Team Leader':'🎧','Administrator':'👔'};
+    const roleColor={'Sr. Manager':'var(--gold)','Manager':'var(--blue)','Team Leader':'var(--green)','Administrator':'var(--gold)'};
+    el.innerHTML=`<div class="card">
+      <div class="ct">Team Accounts (${users.length})</div>
+      <div class="cs">Alle Benutzer · Passwort-Reset über Supabase Dashboard → Authentication → Users</div>
       <div class="tw"><table class="bt"><thead><tr>
-        <th style="text-align:left">Name</th><th style="text-align:left">ID</th>
-        <th style="text-align:left">Rolle</th><th style="text-align:left">Seit</th><th></th>
+        <th style="text-align:left">Name</th>
+        <th style="text-align:left">Rolle</th>
+        <th style="text-align:left">Projekt (TL)</th>
+        <th style="text-align:left">Erstellt</th>
+        <th></th>
       </tr></thead><tbody>
         ${users.map(u=>`<tr>
-          <td style="font-weight:600">${u.name||'—'}</td>
-          <td class="mn" style="color:var(--text2)">${u.id.substring(0,8)}…</td>
-          <td><select class="var-proj-sel" style="font-size:11px;padding:3px 7px" onchange="changeUserRole('${u.id}',this.value)">
-            <option ${u.role==='Viewer'?'selected':''}>Viewer</option>
-            <option ${u.role==='Manager'?'selected':''}>Manager</option>
-            <option ${u.role==='Administrator'?'selected':''}>Administrator</option>
-          </select></td>
+          <td>
+            <div style="font-weight:600;color:var(--text)">${u.name||'—'}</div>
+            <div style="font-size:11px;color:var(--text2)">${u.id.substring(0,12)}…</div>
+          </td>
+          <td>
+            <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:${(roleColor[u.role]||'var(--text2)').replace('var(','rgba(').replace('--gold)','212,146,10,.15)').replace('--blue)','74,108,247,.15)').replace('--green)','0,200,150,.15)')};color:${roleColor[u.role]||'var(--text2)'}">
+              ${roleIcon[u.role]||'👤'} ${u.role||'—'}
+            </span>
+          </td>
+          <td style="font-size:12px;color:var(--text2)">${u.assigned_project||'—'}</td>
           <td style="font-size:11px;color:var(--text2)">${new Date(u.created_at).toLocaleDateString('de-DE')}</td>
-          <td>${u.id===ME?.id?`<span style="font-size:11px;color:var(--text2)">Du</span>`:`<button class="btn btn-xs btn-danger" onclick="removeUser('${u.id}','${u.name||u.id}')">Entfernen</button>`}</td>
+          <td style="display:flex;gap:5px">
+            ${u.id===ME?.id
+              ?`<span style="font-size:11px;color:var(--text2);padding:4px 8px">Du</span>`
+              :`<button class="btn btn-xs btn-ghost" onclick="openEditUser('${u.id}','${(u.name||'').replace(/'/g,"\\'")}','${u.role}','${u.assigned_project||''}')">✏ Edit</button>
+               <button class="btn btn-xs btn-danger" onclick="removeUser('${u.id}','${(u.name||u.id).replace(/'/g,"\\'")}')">✕</button>`
+            }
+          </td>
         </tr>`).join('')}
-      </tbody></table></div></div>
-      <div class="card"><div class="ct">Passwort Reset</div>
-      <div class="cs">Reset-E-Mail an Benutzer senden</div>
+      </tbody></table></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="ct">Passwort Reset</div>
+      <div class="cs">Reset-Link per E-Mail senden</div>
       <div style="display:flex;gap:8px;align-items:flex-end">
         <div class="ff" style="flex:1"><label>E-Mail</label><input id="reset-em" type="email" placeholder="benutzer@firma.com"></div>
         <button class="btn btn-outline btn-sm" onclick="sendReset()" style="margin-bottom:1px">Reset senden</button>
-      </div></div>
-      <div class="alert alert-info" style="margin-top:12px">💡 Neue Benutzer einladen: Supabase Dashboard → Authentication → Users → Invite user. Die Rolle wird beim ersten Login automatisch auf "Viewer" gesetzt.</div>`;
+      </div>
+    </div>`;
   }catch(e){
-    el.innerHTML=`<div class="alert alert-danger">Fehler beim Laden: ${e.message}</div>`;
+    el.innerHTML=`<div class="alert alert-danger">Fehler: ${e.message}</div>`;
   }
 }
+
 async function changeUserRole(uid,role){
   if(!SB_MODE)return;
   const{error}=await sbPatch('bpo_users','id=eq.'+uid,{role});
   if(error)showToast('Fehler: '+error.message,'err');
   else{addLog('Role Change',uid.substring(0,8)+' → '+role,'info');autoSave();showToast('Rolle aktualisiert ✓','ok');}
 }
+
 async function removeUser(uid,name){
-  if(!confirm(`${name} entfernen?`))return;
+  if(!confirm(`${name} entfernen? Der Benutzer verliert sofort den Zugang.`))return;
   if(!SB_MODE)return;
   const{error}=await sbDel('bpo_users','id=eq.'+uid);
   if(error){showToast('Fehler: '+error.message,'err');return;}
   addLog('User Remove',name,'warn');autoSave();showToast(name+' entfernt ✓','ok');renderUsers();
 }
-async function inviteUser(){
-  const email=document.getElementById('inv-em').value.trim();
-  const name=document.getElementById('inv-nm').value.trim();
-  const role=document.getElementById('inv-rl').value;
-  const st=document.getElementById('inv-status');
-  if(!email){st.style.color='var(--red)';st.textContent='E-Mail eingeben.';return;}
-  if(!SB_MODE){st.style.color='var(--red)';st.textContent='Supabase nicht verbunden.';return;}
-  // Client-side invite not possible without service_role key — guide user to dashboard
-  st.style.color='var(--amber)';
-  st.textContent=`ℹ Einladen über: Supabase Dashboard → Authentication → Users → "Invite user" → ${email} eingeben. Rolle "${role}" wird nach erstem Login gesetzt.`;
-  addLog('Invite Planned',email+' ('+role+')','info');
-}
+
 async function sendReset(){
   const em=document.getElementById('reset-em').value.trim();
   if(!em||!SB_MODE)return;
@@ -1818,7 +2064,7 @@ window.addEventListener('DOMContentLoaded', async () => {
           SB_TOKEN=token;
           const{data:profiles}=await sbSelect('bpo_users','id=eq.'+user.id);
           const p=profiles?.[0];
-          ME={id:user.id,email:user.email,name:p?.name||user.email.split('@')[0],role:p?.role||'Viewer'};
+          ME={id:user.id,email:user.email,name:p?.name||user.email.split('@')[0],role:p?.role||'Manager',assignedProject:p?.assigned_project||null};
           await sbLoad();
           launchApp();
         }
