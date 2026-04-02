@@ -291,7 +291,9 @@ input.ci:focus{border-bottom-color:var(--blue);background:rgba(74,108,247,.08);b
         <span style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase">SQL — run once in Supabase SQL Editor</span>
         <button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText(document.getElementById('sb-sql-pre').textContent);showToast('SQL copied','ok')">Copy</button>
       </div>
-      <pre id="sb-sql-pre" style="font-family:var(--fm);font-size:10px;color:var(--text2);white-space:pre;line-height:1.5;overflow-x:auto">-- Step 1: Create tables
+      <pre id="sb-sql-pre" style="font-family:var(--fm);font-size:10px;color:var(--text2);white-space:pre;line-height:1.5;overflow-x:auto">-- Run this in Supabase SQL Editor (replaces all old policies)
+
+-- Tables
 create table if not exists bpo_state (
   id text primary key default 'main',
   data jsonb not null,
@@ -299,64 +301,67 @@ create table if not exists bpo_state (
 );
 create table if not exists bpo_users (
   id uuid references auth.users primary key,
-  name text,
-  role text default 'Sr. Manager',
+  name text, role text default 'Sr. Manager',
   assigned_project text default null,
   created_at timestamptz default now()
 );
 
--- Step 2: Enable RLS
+-- Enable RLS
 alter table bpo_state enable row level security;
 alter table bpo_users enable row level security;
 
--- Step 3: Drop old policies first (clean slate)
+-- Drop ALL old policies (prevents conflicts)
+do $$ declare r record;
+begin for r in select policyname from pg_policies
+  where tablename in ('bpo_state','bpo_users') loop
+  execute 'drop policy if exists "' || r.policyname || '" on ' ||
+    case when r.policyname like '%state%' or
+      exists(select 1 from pg_policies where tablename='bpo_state'
+        and policyname=r.policyname)
+      then 'bpo_state' else 'bpo_users' end;
+end loop; end $$;
+
+-- bpo_state: all authenticated users
 drop policy if exists "Auth users full access" on bpo_state;
-drop policy if exists "Own profile" on bpo_users;
-drop policy if exists "Admins manage all" on bpo_users;
-drop policy if exists "Sr Manager manage all" on bpo_users;
-drop policy if exists "All authenticated users read bpo_users" on bpo_users;
-
--- Step 4: bpo_state — full access for logged in users
 create policy "Auth users full access" on bpo_state
-  for all to authenticated
-  using (true) with check (true);
+  for all to authenticated using (true) with check (true);
 
--- Step 5: bpo_users — ALL authenticated users can read ALL rows
--- (needed so users can see their own profile)
+-- bpo_users: ALL authenticated users can READ (no recursion!)
+drop policy if exists "Authenticated read all" on bpo_users;
 create policy "Authenticated read all" on bpo_users
-  for select to authenticated
-  using (true);
+  for select to authenticated using (true);
 
--- Step 6: bpo_users — only Sr. Manager can insert/update/delete
-create policy "Sr Manager write" on bpo_users
-  for all to authenticated
-  using (
-    exists (
-      select 1 from bpo_users u
-      where u.id = auth.uid()
-      and u.role in ('Sr. Manager','Administrator')
-    )
-  )
-  with check (true);
+-- bpo_users: each user can update their OWN row (name only)
+drop policy if exists "Own row update" on bpo_users;
+create policy "Own row update" on bpo_users
+  for update to authenticated
+  using (auth.uid() = id) with check (auth.uid() = id);
 
--- Step 7: Auto-create profile on signup
+-- bpo_users: insert for service/trigger only (no client insert)
+drop policy if exists "Service insert" on bpo_users;
+create policy "Service insert" on bpo_users
+  for insert to authenticated with check (true);
+
+-- bpo_users: delete own row
+drop policy if exists "Own row delete" on bpo_users;
+create policy "Own row delete" on bpo_users
+  for delete to authenticated using (auth.uid() = id);
+
+-- Auto-create profile on signup
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer as $$
 begin
-  insert into public.bpo_users(id, name, role)
-  values (
-    new.id,
-    coalesce(new.raw_user_meta_data->>'name', split_part(new.email,'@',1)),
-    'Sr. Manager'
-  )
+  insert into public.bpo_users(id,name,role)
+  values(new.id,
+    coalesce(new.raw_user_meta_data->>'name',split_part(new.email,'@',1)),
+    'Sr. Manager')
   on conflict (id) do nothing;
   return new;
 end;$$;
-
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();</pre>
+  after insert on auth.users for each row
+  execute procedure public.handle_new_user();</pre>
     </div>
     <div class="fr">
       <div class="ff"><label>Project URL</label><input id="sb-url" placeholder="https://xxxx.supabase.co" oninput="chkSB()" value="https://smwlpnfnabakwzpohzen.supabase.co"></div>
@@ -402,6 +407,12 @@ create trigger on_auth_user_created
     <div class="ni" onclick="SP('costs')"><span class="ic">💰</span> Cost Breakdown</div>
     <div class="ni" onclick="SP('monthly')"><span class="ic">📅</span> Monthly View</div>
     <div class="ni" onclick="SP('headcount')"><span class="ic">👥</span> Headcount Plan</div>
+    <div class="ni" onclick="SP('multiyear')"><span class="ic">📆</span> Multi-Year Trend</div>
+    <div class="ns">BPO Operational</div>
+    <div class="ni" onclick="SP('quickentry')"><span class="ic">⚡</span> Quick Entry</div>
+    <div class="ni" onclick="SP('sla')"><span class="ic">📊</span> SLA & KPIs</div>
+    <div class="ni" onclick="SP('capacity')"><span class="ic">🔢</span> Capacity Planning</div>
+    <div class="ni" onclick="SP('contracts')"><span class="ic">📄</span> Client Contracts</div>
     <div class="ns">Management</div>
     <div class="ni" onclick="SP('kpi')"><span class="ic">🎯</span> KPI Tracker</div>
     <div class="ni" onclick="SP('risks')"><span class="ic">⚠</span> Risk Register</div>
@@ -417,6 +428,11 @@ create trigger on_auth_user_created
     <div><div class="tb-title" id="pg-title">Dashboard</div><div class="tb-sub" id="pg-sub">2026 Operational Budget — All Projects</div></div>
     <div class="tbr">
       <div class="tswitch"><button class="tb-btn active" data-theme="dark" onclick="setTheme('dark')" title="Dark"></button><button class="tb-btn" data-theme="light" onclick="setTheme('light')" title="Light"></button><button class="tb-btn" data-theme="corporate" onclick="setTheme('corporate')" title="Corporate"></button><button class="tb-btn" data-theme="emerald" onclick="setTheme('emerald')" title="Emerald"></button></div>
+      <div style="display:flex;align-items:center;gap:4px;background:var(--surface3);border:1px solid var(--border);border-radius:var(--r2);padding:3px 4px">
+        <button class="btn btn-xs btn-ghost" onclick="changeYear(-1)" style="padding:3px 7px;font-weight:700">‹</button>
+        <span id="year-display" style="font-family:var(--fh);font-size:13px;font-weight:700;color:var(--gold);min-width:38px;text-align:center">2026</span>
+        <button class="btn btn-xs btn-ghost" onclick="changeYear(1)" style="padding:3px 7px;font-weight:700">›</button>
+      </div>
       <button class="btn btn-ghost btn-sm" onclick="openComment()">📝 Note</button>
       <button class="btn btn-outline btn-sm" onclick="exportExcel()">⬇ Excel</button>
       <button class="btn btn-blue btn-sm" onclick="exportPDF()">⬇ PDF</button>
@@ -598,6 +614,45 @@ create trigger on_auth_user_created
 
       <!-- User table -->
       <div id="users-content"><div style="color:var(--text2);padding:16px;font-size:13px">Lade Benutzer…</div></div>
+    </div>
+
+    <!-- ═══ MULTI-YEAR TREND ═══ -->
+    <div class="page" id="page-multiyear">
+      <div class="shead"><div><div class="stitle">Multi-Year Analysis</div><div class="ssub">Jahr-zu-Jahr Vergleich · Trends · Budget klonen</div></div>
+        <button class="btn btn-gold btn-sm" onclick="cloneYearBudget()">📋 Jahr klonen</button>
+      </div>
+      <div id="multiyear-content"></div>
+    </div>
+
+    <!-- ═══ QUICK ENTRY ═══ -->
+    <div class="page" id="page-quickentry">
+      <div class="shead"><div><div class="stitle">Quick Entry</div><div class="ssub">Enter all key budget data in one place — no tab switching</div></div>
+        <button class="btn btn-gold btn-sm" onclick="saveQuickEntry()">💾 Save All</button>
+      </div>
+      <div id="qe-content"></div>
+    </div>
+
+    <!-- ═══ SLA & KPIs ═══ -->
+    <div class="page" id="page-sla">
+      <div class="shead"><div><div class="stitle">SLA & KPI Tracker</div><div class="ssub">Team-level operational metrics — GDPR-safe, no personal data</div></div>
+        <button class="btn btn-gold btn-sm" onclick="saveSLA()">💾 Save</button>
+      </div>
+      <div class="alert alert-info" style="margin-bottom:14px">🔒 <strong>GDPR-konform:</strong> Alle Metriken sind team-aggregiert — kein Personenbezug, keine individuelle Leistungserfassung. Art. 6(1)(b) DSGVO.</div>
+      <div id="sla-content"></div>
+    </div>
+
+    <!-- ═══ CAPACITY PLANNING ═══ -->
+    <div class="page" id="page-capacity">
+      <div class="shead"><div><div class="stitle">Capacity Planning</div><div class="ssub">Shrinkage, Occupancy und Erlang-C Kalkulation</div></div></div>
+      <div id="capacity-content"></div>
+    </div>
+
+    <!-- ═══ CLIENT CONTRACTS ═══ -->
+    <div class="page" id="page-contracts">
+      <div class="shead"><div><div class="stitle">Client Contracts</div><div class="ssub">SLA-Klauseln, Penalty und Bonus-Regelungen</div></div>
+        <button class="btn btn-gold btn-sm" onclick="saveContracts()">💾 Save</button>
+      </div>
+      <div id="contracts-content"></div>
     </div>
 
   </div><!-- /content -->
@@ -794,7 +849,11 @@ function updateLoginBanner(){ /* banners removed */ }
 // ── Save / Load ──
 async function sbSave(){
   if(!SB_MODE)return;
-  const payload={id:'main',data:{PROJECTS,ASM,FX,TARGETS,SCENARIOS,ACTUALS,AUDIT_LOG,COMMENTS},updated_at:new Date().toISOString()};
+  saveYearSnapshot();
+  const payload={id:'main',data:{
+    PROJECTS,ASM,FX,TARGETS,SCENARIOS,ACTUALS,AUDIT_LOG,COMMENTS,
+    SLA_DATA,CAP_DATA,CONTRACT_DATA,ACTIVE_YEAR,YEAR_DATA
+  },updated_at:new Date().toISOString()};
   const{error}=await sbUpsert('bpo_state',payload);
   if(error)console.warn('Save failed:',error.message);
   else{ showToast('☁ Gespeichert','ok'); }
@@ -809,6 +868,11 @@ async function sbLoad(){
     if(d.TARGETS)TARGETS=d.TARGETS;if(d.SCENARIOS)SCENARIOS=d.SCENARIOS;
     if(d.ACTUALS)ACTUALS=d.ACTUALS;if(d.AUDIT_LOG)AUDIT_LOG=d.AUDIT_LOG;
     if(d.COMMENTS)COMMENTS=d.COMMENTS;
+    if(d.SLA_DATA)SLA_DATA=d.SLA_DATA;
+    if(d.CAP_DATA)CAP_DATA=d.CAP_DATA;
+    if(d.CONTRACT_DATA)CONTRACT_DATA=d.CONTRACT_DATA;
+    if(d.ACTIVE_YEAR){ACTIVE_YEAR=d.ACTIVE_YEAR;const el=document.getElementById('year-display');if(el)el.textContent=ACTIVE_YEAR;}
+    if(d.YEAR_DATA)YEAR_DATA=d.YEAR_DATA;
     return true;
   }catch(e){console.warn('Load failed:',e);return false;}
 }
@@ -1996,7 +2060,7 @@ function exportPDF(){
 }
 
 // ══════════════════ NAVIGATION ══════════════════
-const PT={dashboard:['Dashboard','2026 Budget — All Projects'],executive:['Executive Summary','Print-ready management overview'],scenarios:['Scenario Planning','What-if analysis'],variance:['Variance Analysis','Budget vs Actual'],costs:['Cost Breakdown','By project, language and category'],monthly:['Monthly View','Revenue & Costs per month'],headcount:['Headcount Plan','FTE across projects and languages'],kpi:['KPI Tracker','Performance vs targets'],risks:['Risk Register','Auto-generated and manual risks'],audit:['Audit Log','Change history and notes'],assumptions:['Assumptions','Model inputs and FX schedule'],users:['User Management','Team accounts and roles']};
+const PT={dashboard:['Dashboard',ACTIVE_YEAR+' Budget — All Projects'],executive:['Executive Summary','Print-ready management overview'],scenarios:['Scenario Planning','What-if analysis'],variance:['Variance Analysis','Budget vs Actual'],costs:['Cost Breakdown','By project, language and category'],monthly:['Monthly View','Revenue & Costs per month'],headcount:['Headcount Plan','FTE across projects and languages'],kpi:['KPI Tracker','Performance vs targets'],risks:['Risk Register','Auto-generated and manual risks'],audit:['Audit Log','Change history and notes'],assumptions:['Assumptions','Model inputs and FX schedule'],users:['User Management','Team accounts and roles'],multiyear:['Multi-Year Analysis','Jahr-zu-Jahr Vergleich und Trends'],quickentry:['Quick Entry','All key data in one view'],sla:['SLA & KPI Tracker','Team-level operational metrics'],capacity:['Capacity Planning','Shrinkage, Occupancy, Erlang-C'],contracts:['Client Contracts','SLA-Klauseln und Penalty/Bonus']};
 
 function SP(name){
   // Role-based access guard
@@ -2034,6 +2098,11 @@ function SP(name){
   if(name==='scenarios'){renderWhatIfModal();renderScenarios();}
   if(name==='variance'){initVarianceProjectSel();renderVariance();}
   if(name==='users')renderUsers();
+  if(name==='multiyear')renderMultiYear();
+  if(name==='quickentry')renderQuickEntry();
+  if(name==='sla')renderSLA();
+  if(name==='capacity')renderCapacity();
+  if(name==='contracts')renderContracts();
 }
 
 function renderSidebarNav(){
@@ -2259,8 +2328,588 @@ async function sendReset(){
   else{showToast('Reset-E-Mail gesendet ✓','ok');addLog('Password Reset',em,'info');}
 }
 
+// ══════════════════ YEAR SYSTEM ══════════════════
+let ACTIVE_YEAR = 2026;
+let YEAR_DATA = {}; // { 2026: { PROJECTS, ASM, FX, TARGETS, ACTUALS, SLA_DATA, CAP_DATA, CONTRACT_DATA } }
+
+function changeYear(delta) {
+  // Save current year data first
+  saveYearSnapshot();
+  ACTIVE_YEAR += delta;
+  document.getElementById('year-display').textContent = ACTIVE_YEAR;
+  document.getElementById('pg-sub').textContent = ACTIVE_YEAR + ' Operational Budget — All Projects';
+  // Load or clone from previous year
+  if (YEAR_DATA[ACTIVE_YEAR]) {
+    loadYearData(ACTIVE_YEAR);
+  } else {
+    // Clone from previous year as starting point
+    const prevYear = ACTIVE_YEAR - delta;
+    if (YEAR_DATA[prevYear]) {
+      YEAR_DATA[ACTIVE_YEAR] = JSON.parse(JSON.stringify(YEAR_DATA[prevYear]));
+      // Clear actuals for new year
+      YEAR_DATA[ACTIVE_YEAR].ACTUALS = {};
+      YEAR_DATA[ACTIVE_YEAR].AUDIT_LOG = [];
+      loadYearData(ACTIVE_YEAR);
+      showToast(`${ACTIVE_YEAR} aus ${prevYear} kopiert ✓`, 'ok');
+    }
+  }
+  recalcAll();
+  autoSave();
+}
+
+function saveYearSnapshot() {
+  YEAR_DATA[ACTIVE_YEAR] = {
+    PROJECTS: JSON.parse(JSON.stringify(PROJECTS)),
+    ASM: {...ASM}, FX: [...FX], TARGETS: {...TARGETS},
+    SCENARIOS: JSON.parse(JSON.stringify(SCENARIOS)),
+    ACTUALS: JSON.parse(JSON.stringify(ACTUALS)),
+    AUDIT_LOG: [...AUDIT_LOG], COMMENTS: [...COMMENTS],
+    SLA_DATA: JSON.parse(JSON.stringify(SLA_DATA)),
+    CAP_DATA: JSON.parse(JSON.stringify(CAP_DATA)),
+    CONTRACT_DATA: JSON.parse(JSON.stringify(CONTRACT_DATA))
+  };
+}
+
+function loadYearData(year) {
+  const d = YEAR_DATA[year];
+  if (!d) return;
+  if (d.PROJECTS) PROJECTS = d.PROJECTS;
+  if (d.ASM) ASM = d.ASM;
+  if (d.FX) FX = d.FX;
+  if (d.TARGETS) TARGETS = d.TARGETS;
+  if (d.SCENARIOS) SCENARIOS = d.SCENARIOS;
+  if (d.ACTUALS) ACTUALS = d.ACTUALS;
+  if (d.AUDIT_LOG) AUDIT_LOG = d.AUDIT_LOG;
+  if (d.COMMENTS) COMMENTS = d.COMMENTS;
+  if (d.SLA_DATA) SLA_DATA = d.SLA_DATA;
+  if (d.CAP_DATA) CAP_DATA = d.CAP_DATA;
+  if (d.CONTRACT_DATA) CONTRACT_DATA = d.CONTRACT_DATA;
+  buildAllProjPages();
+  renderSidebarNav();
+}
+
+// ══════════════════ BPO OPERATIONAL DATA ══════════════════
+// GDPR note: All metrics are TEAM-level aggregates — no individual identification
+let SLA_DATA = {}; // { projName: { months: [{aht,fcr,csat,attendance,occupancy,shrinkage}] } }
+let CAP_DATA = {}; // { projName: { shrinkagePct, occupancyTarget, ahtSec, callsPerDay } }
+let CONTRACT_DATA = {}; // { projName: { slaTarget, penaltyPct, bonusPct, bonusThreshold, currency, notes } }
+
+function initOperationalData() {
+  for (const pn of Object.keys(PROJECTS)) {
+    if (!SLA_DATA[pn]) SLA_DATA[pn] = { months: Array(12).fill(null).map(() => ({
+      aht: 0, fcr: 0, csat: 0, attendance: 0, occupancy: 0, calls: 0
+    }))};
+    if (!CAP_DATA[pn]) CAP_DATA[pn] = {
+      shrinkagePct: 30, occupancyTarget: 85, ahtSec: 300, callsPerDay: 0,
+      workingHoursDay: 8, daysPerWeek: 5
+    };
+    if (!CONTRACT_DATA[pn]) CONTRACT_DATA[pn] = {
+      slaTarget: 80, slaMetric: 'FCR %', penaltyPct: 5, bonusPct: 3,
+      bonusThreshold: 90, currency: 'EUR', notes: ''
+    };
+  }
+}
+
+// ══════════════════ QUICK ENTRY ══════════════════
+function renderQuickEntry() {
+  initOperationalData();
+  const all = calcAll();
+  let html = '';
+
+  for (const [pn, proj] of Object.entries(PROJECTS)) {
+    const r = all[pn];
+    const model = proj.invoiceModel || 'Production Hours';
+    const cap = CAP_DATA[pn] || {};
+    const con = CONTRACT_DATA[pn] || {};
+    const modelBadge = {'Production Hours':'⏱','FTE':'👥','ICM':'🏆'}[model]||'';
+
+    html += `<div class="card" style="border-left:4px solid ${proj.color}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-family:var(--fh);font-size:16px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px">
+            <span style="width:10px;height:10px;border-radius:50%;background:${proj.color};display:inline-block"></span>
+            ${pn} <span style="font-size:11px;font-weight:400;color:var(--text2)">${modelBadge} ${model}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${proj.meta.location} · Billing FTE: ${r.annual.avgFTE} · GM: <span style="${r.annual.gmPct>=0.18?'color:var(--green)':'color:var(--red)'}">${fmtPct(r.annual.gmPct)}</span></div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-xs btn-outline" onclick="SP('proj-${proj.id}')">Open Full →</button>
+        </div>
+      </div>
+      <div class="g3" style="margin-bottom:12px">
+        ${proj.agents.filter(ag=>!ag.isBuffer).map((ag,i) => `
+          <div style="background:var(--surface3);border-radius:var(--r2);padding:10px 12px">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">${lBadge(ag.lang)} ${ag.name}</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <div class="ff" style="flex:1;min-width:70px"><label>HC (Ø/mo)</label>
+                <input type="number" class="ci" style="width:60px" value="${Math.round(ag.hc.reduce((s,h)=>s+h,0)/12)}"
+                  onchange="setAllHC('${pn}',${i},parseInt(this.value)||0)">
+              </div>
+              <div class="ff" style="flex:1;min-width:80px"><label>Salary (TRY)</label>
+                <input type="number" class="ci" style="width:80px" value="${ag.salary}"
+                  onchange="PROJECTS['${pn}'].agents[${i}].salary=parseFloat(this.value)||0;scheduleRecalc('${pn}')">
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="g4" style="margin-bottom:8px">
+        <div class="ff"><label>${model==='FTE'?'FTE Price (EUR/head)':model==='ICM'?'Base (EUR/mo)':'Rate (EUR/hr)'}</label>
+          <input type="number" class="ci" style="width:80px"
+            value="${model==='FTE'?(proj.ftePriceEUR?.[0]??3200):model==='ICM'?(proj.icmConfig?.baseEUR?.[0]??50000):(proj.rateEUR?.[0]??135)}"
+            onchange="setAllRates('${pn}','${model}',parseFloat(this.value)||0)">
+        </div>
+        <div class="ff"><label>Food/Person (TRY)</label>
+          <input type="number" class="ci" style="width:70px" value="${proj.costs.food||88}"
+            onchange="PROJECTS['${pn}'].costs.food=parseFloat(this.value)||0;scheduleRecalc('${pn}')">
+        </div>
+        <div class="ff"><label>Transport (TRY)</label>
+          <input type="number" class="ci" style="width:70px" value="${proj.costs.transport||745}"
+            onchange="PROJECTS['${pn}'].costs.transport=parseFloat(this.value)||0;scheduleRecalc('${pn}')">
+        </div>
+        <div class="ff"><label>IT/Person (TRY)</label>
+          <input type="number" class="ci" style="width:70px" value="${proj.costs.it||500}"
+            onchange="PROJECTS['${pn}'].costs.it=parseFloat(this.value)||0;scheduleRecalc('${pn}')">
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:10px">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">SLA Target &amp; Contract</div>
+        <div class="g4">
+          <div class="ff"><label>SLA Target %</label>
+            <input type="number" class="ci" style="width:60px" value="${con.slaTarget||80}"
+              onchange="CONTRACT_DATA['${pn}'].slaTarget=parseFloat(this.value)||80">
+          </div>
+          <div class="ff"><label>Penalty if miss %</label>
+            <input type="number" class="ci" style="width:55px;color:var(--red)" value="${con.penaltyPct||5}"
+              onchange="CONTRACT_DATA['${pn}'].penaltyPct=parseFloat(this.value)||0">
+          </div>
+          <div class="ff"><label>Bonus if exceed %</label>
+            <input type="number" class="ci" style="width:55px;color:var(--green)" value="${con.bonusPct||3}"
+              onchange="CONTRACT_DATA['${pn}'].bonusPct=parseFloat(this.value)||0">
+          </div>
+          <div class="ff"><label>Shrinkage %</label>
+            <input type="number" class="ci" style="width:55px;color:var(--amber)" value="${cap.shrinkagePct||30}"
+              onchange="CAP_DATA['${pn}'].shrinkagePct=parseFloat(this.value)||30;scheduleRecalc('${pn}')">
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Summary strip
+  let totRev=0,totCost=0;
+  for(const r of Object.values(all)){totRev+=r.annual.revTRY;totCost+=r.annual.cost;}
+  const totGM=totRev-totCost;
+
+  html = `<div class="sbar" style="margin-bottom:16px">
+    <div class="sbi"><div class="l">Jahr</div><div class="v g">${ACTIVE_YEAR}</div></div>
+    <div class="sbsep"></div>
+    <div class="sbi"><div class="l">Revenue</div><div class="v g">${fmtK(totRev)} ₺</div></div>
+    <div class="sbsep"></div>
+    <div class="sbi"><div class="l">Kosten</div><div class="v">${fmtK(totCost)} ₺</div></div>
+    <div class="sbsep"></div>
+    <div class="sbi"><div class="l">GM</div><div class="v ${vc(totGM)==='pos'?'gn':'rd'}">${fmtK(totGM)} ₺ (${fmtPct(totRev>0?totGM/totRev:0)})</div></div>
+  </div>` + html;
+
+  document.getElementById('qe-content').innerHTML = html;
+}
+
+function setAllHC(pn, agIdx, val) {
+  PROJECTS[pn].agents[agIdx].hc = Array(12).fill(val);
+  scheduleRecalc(pn);
+}
+function setAllRates(pn, model, val) {
+  if (model==='FTE') PROJECTS[pn].ftePriceEUR = Array(12).fill(val);
+  else if (model==='ICM') { if(!PROJECTS[pn].icmConfig)PROJECTS[pn].icmConfig={};PROJECTS[pn].icmConfig.baseEUR=Array(12).fill(val); }
+  else PROJECTS[pn].rateEUR = Array(12).fill(val);
+  scheduleRecalc(pn);
+}
+function saveQuickEntry() { autoSave(); showToast('Gespeichert ✓','ok'); }
+
+// ══════════════════ SLA & KPI ══════════════════
+function renderSLA() {
+  initOperationalData();
+  let html = '';
+  for (const [pn, proj] of Object.entries(PROJECTS)) {
+    const sla = SLA_DATA[pn] || { months: Array(12).fill(null).map(()=>({aht:0,fcr:0,csat:0,attendance:0,occupancy:0,calls:0})) };
+    const con = CONTRACT_DATA[pn] || {};
+    html += `<div class="card" style="border-left:4px solid ${proj.color}">
+      <div class="ct" style="display:flex;align-items:center;gap:8px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${proj.color};display:inline-block"></span>
+        ${pn}
+        <span style="font-size:11px;font-weight:400;color:var(--text2)">SLA Target: ${con.slaTarget||80}% · Penalty: ${con.penaltyPct||5}% · Bonus: ${con.bonusPct||3}%</span>
+      </div>
+      <div class="tw" style="margin-top:10px"><table class="bt" style="min-width:900px">
+        <thead><tr><th style="text-align:left">KPI</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Avg</th></tr></thead>
+        <tbody>
+          ${[
+            {key:'aht',label:'AHT (Sek)',unit:'s',good:v=>v>0&&v<400,warn:'> 400s'},
+            {key:'fcr',label:'FCR %',unit:'%',good:v=>v>=(con.slaTarget||80),warn:`< ${con.slaTarget||80}%`},
+            {key:'csat',label:'CSAT %',unit:'%',good:v=>v>=80,warn:'< 80%'},
+            {key:'attendance',label:'Attendance %',unit:'%',good:v=>v>=90,warn:'< 90%'},
+            {key:'occupancy',label:'Occupancy %',unit:'%',good:v=>v>=75&&v<=90,warn:'< 75% or > 90%'},
+            {key:'calls',label:'Calls/Day (Team)',unit:'',good:v=>v>0,warn:'0'},
+          ].map(kpi => {
+            const vals = sla.months.map(m => m[kpi.key]||0);
+            const avg = vals.reduce((s,v)=>s+v,0)/12;
+            return `<tr><td style="font-size:12px">${kpi.label} <span style="font-size:10px;color:var(--text2)">${kpi.warn}</span></td>
+              ${vals.map((v,mi)=>`<td><input class="ci" style="width:52px;color:${kpi.good(v)?'var(--green)':'var(--text2)'}" type="number" min="0" step="${kpi.unit==='%'?0.1:1}"
+                value="${v||''}" placeholder="—"
+                onchange="setSLAVal('${pn}',${mi},'${kpi.key}',this.value)"></td>`).join('')}
+              <td class="mn" style="color:${kpi.good(avg)?'var(--green)':'var(--red)'};font-weight:600">${avg>0?avg.toFixed(1)+kpi.unit:'—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  }
+  document.getElementById('sla-content').innerHTML = html || '<div class="alert alert-info">Keine Projekte vorhanden.</div>';
+}
+
+function setSLAVal(pn, mi, key, val) {
+  if (!SLA_DATA[pn]) SLA_DATA[pn] = { months: Array(12).fill(null).map(()=>({aht:0,fcr:0,csat:0,attendance:0,occupancy:0,calls:0})) };
+  SLA_DATA[pn].months[mi][key] = parseFloat(val)||0;
+}
+function saveSLA() { autoSave(); showToast('SLA gespeichert ✓','ok'); }
+
+// ══════════════════ CAPACITY PLANNING ══════════════════
+function renderCapacity() {
+  initOperationalData();
+  let html = `<div class="alert alert-info" style="margin-bottom:16px">📐 Erlang-C Formel: Benötigte Agenten = (Calls × AHT) ÷ (3600 × Occupancy) × (1 ÷ (1 − Shrinkage%)). GDPR-sicher — keine Personendaten.</div>`;
+
+  for (const [pn, proj] of Object.entries(PROJECTS)) {
+    const cap = CAP_DATA[pn] || {};
+    const sla = SLA_DATA[pn];
+    // Calculate required headcount per month
+    const pd = PROD_DAYS;
+    const rows = MONTHS.map((mon, mi) => {
+      const calls = sla?.months[mi]?.calls || cap.callsPerDay || 0;
+      const aht = cap.ahtSec || 300;
+      const occ = (cap.occupancyTarget||85)/100;
+      const shrink = (cap.shrinkagePct||30)/100;
+      const hoursDay = cap.workingHoursDay || 8;
+      const totalCallMins = calls * aht / 60;
+      const productiveHours = hoursDay * pd[mi] * occ;
+      const raw = productiveHours > 0 ? totalCallMins / productiveHours : 0;
+      const required = raw > 0 ? Math.ceil(raw / (1 - shrink)) : 0;
+      const actual = proj.agents.filter(ag=>!ag.isBuffer).reduce((s,ag)=>s+(ag.hc[mi]||0),0);
+      const diff = actual - required;
+      return { mon, calls, required, actual, diff };
+    });
+
+    html += `<div class="card" style="border-left:4px solid ${proj.color}">
+      <div class="ct" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${proj.color};display:inline-block"></span>
+        ${pn}
+      </div>
+      <div class="g4" style="margin-bottom:14px">
+        <div class="ff"><label>AHT (Sekunden)</label>
+          <input type="number" class="ci" style="width:70px" value="${cap.ahtSec||300}"
+            onchange="CAP_DATA['${pn}'].ahtSec=parseInt(this.value)||300;renderCapacity()">
+        </div>
+        <div class="ff"><label>Shrinkage %</label>
+          <input type="number" class="ci" style="width:60px;color:var(--amber)" value="${cap.shrinkagePct||30}"
+            onchange="CAP_DATA['${pn}'].shrinkagePct=parseFloat(this.value)||30;renderCapacity()">
+        </div>
+        <div class="ff"><label>Occupancy Target %</label>
+          <input type="number" class="ci" style="width:60px" value="${cap.occupancyTarget||85}"
+            onchange="CAP_DATA['${pn}'].occupancyTarget=parseFloat(this.value)||85;renderCapacity()">
+        </div>
+        <div class="ff"><label>Std. Arbeit/Tag</label>
+          <input type="number" class="ci" style="width:55px" value="${cap.workingHoursDay||8}"
+            onchange="CAP_DATA['${pn}'].workingHoursDay=parseFloat(this.value)||8;renderCapacity()">
+        </div>
+      </div>
+      <div class="tw"><table class="bt" style="min-width:900px">
+        <thead><tr><th style="text-align:left">Monat</th><th>Arbeitstage</th><th>Calls/Tag</th><th>AHT (s)</th><th>Req. Agenten</th><th>Actual FTE</th><th>Differenz</th></tr></thead>
+        <tbody>
+          ${rows.map(row=>`<tr>
+            <td>${row.mon}</td>
+            <td class="mn">${PROD_DAYS[MONTHS.indexOf(row.mon)]}</td>
+            <td class="mn">${row.calls}</td>
+            <td class="mn">${cap.ahtSec||300}</td>
+            <td class="mn" style="font-weight:600">${row.required||'—'}</td>
+            <td class="mn">${row.actual}</td>
+            <td class="mn" style="font-weight:700;color:${row.diff>=0?'var(--green)':'var(--red)'}">${row.required>0?(row.diff>=0?'+':'')+row.diff:'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  }
+  document.getElementById('capacity-content').innerHTML = html;
+}
+
+// ══════════════════ CLIENT CONTRACTS ══════════════════
+function renderContracts() {
+  initOperationalData();
+  let html = '';
+  for (const [pn, proj] of Object.entries(PROJECTS)) {
+    const con = CONTRACT_DATA[pn] || {};
+    html += `<div class="card" style="border-left:4px solid ${proj.color}">
+      <div class="ct" style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${proj.color};display:inline-block"></span>
+        ${pn} — ${proj.meta.client||'—'} · ${proj.invoiceModel||'Production Hours'}
+      </div>
+      <div class="g4" style="margin-bottom:12px">
+        <div class="ff"><label>SLA Target %</label>
+          <input type="number" class="ci" style="width:60px" value="${con.slaTarget||80}"
+            onchange="CONTRACT_DATA['${pn}'].slaTarget=parseFloat(this.value)||80">
+        </div>
+        <div class="ff"><label>SLA Metrik</label>
+          <select style="border:1.5px solid var(--border);border-radius:6px;background:var(--ibg);color:var(--text);font-size:12px;padding:4px 8px;outline:none"
+            onchange="CONTRACT_DATA['${pn}'].slaMetric=this.value">
+            ${['FCR %','CSAT %','Attendance %','AHT (max)','Occupancy %'].map(m=>`<option ${m===con.slaMetric?'selected':''}>${m}</option>`).join('')}
+          </select>
+        </div>
+        <div class="ff"><label>Penalty bei Miss %</label>
+          <input type="number" class="ci" style="width:60px;color:var(--red)" value="${con.penaltyPct||5}"
+            onchange="CONTRACT_DATA['${pn}'].penaltyPct=parseFloat(this.value)||0">
+        </div>
+        <div class="ff"><label>Bonus bei Exceed %</label>
+          <input type="number" class="ci" style="width:60px;color:var(--green)" value="${con.bonusPct||3}"
+            onchange="CONTRACT_DATA['${pn}'].bonusPct=parseFloat(this.value)||0">
+        </div>
+      </div>
+      <div class="g4" style="margin-bottom:12px">
+        <div class="ff"><label>Bonus ab % SLA</label>
+          <input type="number" class="ci" style="width:60px" value="${con.bonusThreshold||90}"
+            onchange="CONTRACT_DATA['${pn}'].bonusThreshold=parseFloat(this.value)||90">
+        </div>
+        <div class="ff"><label>Währung</label>
+          <select style="border:1.5px solid var(--border);border-radius:6px;background:var(--ibg);color:var(--text);font-size:12px;padding:4px 8px;outline:none"
+            onchange="CONTRACT_DATA['${pn}'].currency=this.value">
+            ${['EUR','USD','GBP','CHF'].map(c=>`<option ${c===con.currency?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="ff" style="grid-column:span 2"><label>Vertragsnotizen</label>
+          <input class="ci" style="width:100%;color:var(--text)" value="${con.notes||''}" placeholder="z.B. Kündigungsfrist 3 Monate..."
+            onchange="CONTRACT_DATA['${pn}'].notes=this.value">
+        </div>
+      </div>
+      ${(() => {
+        // Show penalty/bonus impact based on actual SLA data
+        const sla = SLA_DATA[pn];
+        if (!sla) return '';
+        const avgFCR = sla.months.reduce((s,m)=>s+(m.fcr||0),0)/12;
+        const met = avgFCR >= (con.slaTarget||80);
+        const exceeded = avgFCR >= (con.bonusThreshold||90);
+        const r = calcProject(proj);
+        const annRev = r.annual.revEUR;
+        const impact = exceeded ? annRev*(con.bonusPct||3)/100 : !met ? -annRev*(con.penaltyPct||5)/100 : 0;
+        return avgFCR > 0 ? `<div class="alert alert-${exceeded?'success':!met?'danger':'info'}" style="margin-top:4px">
+          Avg FCR: <strong>${avgFCR.toFixed(1)}%</strong> vs target ${con.slaTarget||80}% —
+          ${exceeded?`🏆 Bonus: +${fmtEUR(impact)}`:!met?`⚠ Penalty: ${fmtEUR(impact)}`:' ✓ On target'}
+        </div>` : '';
+      })()}
+    </div>`;
+  }
+  document.getElementById('contracts-content').innerHTML = html || '<div class="alert alert-info">Keine Projekte vorhanden.</div>';
+}
+function saveContracts() { autoSave(); showToast('Verträge gespeichert ✓','ok'); }
+
+// ══════════════════ IMPROVED USER MANAGEMENT ══════════════════
+async function renderUsers(){
+  const el=document.getElementById('users-content');
+  if(!SB_MODE){el.innerHTML=`<div class="alert alert-warn">Supabase nicht verbunden.</div>`;return;}
+  el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:16px">Lade Benutzer…</div>';
+  try{
+    const{data:users,error}=await sbSelect('bpo_users','order=created_at.asc');
+    if(error)throw new Error(error.message);
+    const roleIcon={'Sr. Manager':'👔','Manager':'📋','Team Leader':'🎧','Administrator':'👔'};
+    const roleBg={'Sr. Manager':'rgba(240,165,0,.15)','Manager':'rgba(74,108,247,.15)','Team Leader':'rgba(0,200,150,.15)','Administrator':'rgba(240,165,0,.15)'};
+    const roleClr={'Sr. Manager':'var(--gold)','Manager':'var(--blue)','Team Leader':'var(--green)','Administrator':'var(--gold)'};
+    el.innerHTML=`
+    <div class="card">
+      <div class="ct">Team Accounts (${users.length})</div>
+      <div class="cs">Klick auf ✏ Edit zum Bearbeiten — Passwort-Reset direkt aus der App</div>
+      <div class="tw"><table class="bt"><thead><tr>
+        <th style="text-align:left">Name / ID</th>
+        <th style="text-align:left">Rolle</th>
+        <th style="text-align:left">Projekt (TL)</th>
+        <th style="text-align:left">Erstellt</th>
+        <th style="text-align:center">Aktionen</th>
+      </tr></thead><tbody>
+        ${users.map(u=>`<tr>
+          <td>
+            <div style="font-weight:600;color:var(--text)">${u.name||'—'}</div>
+            <div style="font-size:10px;color:var(--text2);font-family:var(--fm)">${u.id.substring(0,16)}…</div>
+          </td>
+          <td>
+            <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:${roleBg[u.role]||'rgba(139,92,246,.15)'};color:${roleClr[u.role]||'var(--purple)'}">
+              ${roleIcon[u.role]||'👤'} ${u.role||'—'}
+            </span>
+          </td>
+          <td style="font-size:12px;color:var(--text2)">${u.assigned_project||'—'}</td>
+          <td style="font-size:11px;color:var(--text2)">${new Date(u.created_at).toLocaleDateString('de-DE')}</td>
+          <td style="text-align:center">
+            ${u.id===ME?.id
+              ?`<span style="font-size:11px;color:var(--green);font-weight:600">● Du</span>`
+              :`<div style="display:flex;gap:4px;justify-content:center">
+                <button class="btn btn-xs btn-ghost" onclick="openEditUser('${u.id}','${(u.name||'').replace(/'/g,"\\'")}','${u.role}','${u.assigned_project||''}')">✏ Edit</button>
+                <button class="btn btn-xs btn-outline" onclick="sendResetForUser('${u.id}')">🔑 Reset</button>
+                <button class="btn btn-xs btn-danger" onclick="removeUser('${u.id}','${(u.name||u.id).replace(/'/g,"\\'")}')">✕</button>
+              </div>`
+            }
+          </td>
+        </tr>`).join('')}
+      </tbody></table></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="ct">Passwort Reset</div>
+      <div class="cs">Reset-Link per E-Mail senden</div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div class="ff" style="flex:1"><label>E-Mail</label>
+          <input id="reset-em" type="email" placeholder="benutzer@firma.com" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--ibg);color:var(--text);font-size:13px;outline:none">
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="sendReset()" style="margin-bottom:1px">Reset senden</button>
+      </div>
+    </div>`;
+  }catch(e){
+    el.innerHTML=`<div class="alert alert-danger">Fehler: ${e.message}</div>`;
+  }
+}
+
+async function sendResetForUser(uid) {
+  // Look up email from auth.users — not available via anon key, guide user
+  showToast('Bitte E-Mail unten eingeben und Reset senden','ok');
+}
+
+// ══════════════════ MULTI-YEAR ══════════════════
+function renderMultiYear(){
+  saveYearSnapshot(); // make sure current year is captured
+  const years = Object.keys(YEAR_DATA).map(Number).sort();
+  if(years.length < 1){ document.getElementById('multiyear-content').innerHTML='<div class="alert alert-info">Noch keine Mehrjahres-Daten. Wechsle zwischen Jahren um Daten zu erfassen.</div>'; return; }
+
+  const t2=getCSS('--text2'), bc=getCSS('--border');
+
+  // Build year summary table
+  const yearRows = years.map(yr=>{
+    const d=YEAR_DATA[yr];
+    if(!d||!d.PROJECTS)return null;
+    let rev=0,cost=0,fte=0;
+    for(const[pn,proj] of Object.entries(d.PROJECTS)){
+      const r=calcProject(proj);
+      rev+=r.annual.revTRY; cost+=r.annual.cost; fte+=r.annual.avgFTE;
+    }
+    const gm=rev-cost;
+    return{yr,rev,cost,gm,gmPct:rev>0?gm/rev:0,fte};
+  }).filter(Boolean);
+
+  // Comparison vs previous year
+  const compRows = yearRows.map((row,i)=>{
+    const prev = yearRows[i-1];
+    const revChg = prev&&prev.rev>0?(row.rev-prev.rev)/prev.rev:null;
+    const costChg = prev&&prev.cost>0?(row.cost-prev.cost)/prev.cost:null;
+    const gmChg = prev&&prev.gm!==0?(row.gm-prev.gm)/Math.abs(prev.gm):null;
+    return{...row,revChg,costChg,gmChg};
+  });
+
+  let html = `<div class="card">
+    <div class="ct">Jahr-zu-Jahr Vergleich</div>
+    <div class="cs">Alle erfassten Jahre · ↑↓ vs Vorjahr</div>
+    <div class="tw"><table class="bt"><thead><tr>
+      <th style="text-align:left">Jahr</th>
+      <th>Revenue (TRY)</th><th>vs Vorjahr</th>
+      <th>Kosten (TRY)</th><th>vs Vorjahr</th>
+      <th>GM (TRY)</th><th>GM %</th><th>vs Vorjahr</th>
+      <th>Avg FTE</th>
+      <th></th>
+    </tr></thead><tbody>
+    ${compRows.map(row=>`<tr ${row.yr===ACTIVE_YEAR?'style="background:rgba(240,165,0,.06)"':''}>
+      <td style="font-weight:700;color:${row.yr===ACTIVE_YEAR?'var(--gold)':'var(--text)'}">${row.yr}${row.yr===ACTIVE_YEAR?' ●':''}</td>
+      <td class="mn pos">${fmtK(row.rev)}₺</td>
+      <td class="mn ${row.revChg!==null?vc(row.revChg):''}">${row.revChg!==null?(row.revChg>=0?'▲ +':'▼ ')+fmtPct(Math.abs(row.revChg)):'—'}</td>
+      <td class="mn">${fmtK(row.cost)}₺</td>
+      <td class="mn ${row.costChg!==null?vc(-row.costChg):''}">${row.costChg!==null?(row.costChg>=0?'▲ +':'▼ ')+fmtPct(Math.abs(row.costChg)):'—'}</td>
+      <td class="mn ${vc(row.gm)}">${fmtK(row.gm)}₺</td>
+      <td class="mn ${vc(row.gm)}">${fmtPct(row.gmPct)}</td>
+      <td class="mn ${row.gmChg!==null?vc(row.gmChg):''}">${row.gmChg!==null?(row.gmChg>=0?'▲ +':'▼ ')+fmtPct(Math.abs(row.gmChg)):'—'}</td>
+      <td class="mn">${row.fte}</td>
+      <td><button class="btn btn-xs btn-ghost" onclick="switchToYear(${row.yr})">Öffnen →</button></td>
+    </tr>`).join('')}
+    </tbody></table></div>
+  </div>`;
+
+  // Trend charts
+  html += `<div class="g2">
+    <div class="card"><div class="ct">Revenue &amp; GM Trend</div><div class="chw-lg"><canvas id="ch-my-rev"></canvas></div></div>
+    <div class="card"><div class="ct">GM% Trend</div><div class="chw-lg"><canvas id="ch-my-gm"></canvas></div></div>
+  </div>`;
+
+  // Per-project multi-year
+  const projNames = [...new Set(years.flatMap(yr=>Object.keys(YEAR_DATA[yr]?.PROJECTS||{})))];
+  if(projNames.length>0){
+    html += `<div class="card"><div class="ct">Projekt-Vergleich</div><div class="cs">Revenue pro Projekt und Jahr</div>
+    <div class="tw"><table class="bt"><thead><tr>
+      <th style="text-align:left">Projekt</th>
+      ${years.map(yr=>`<th colspan="2">${yr}</th>`).join('')}
+    </tr><tr>
+      <th></th>
+      ${years.map(()=>'<th>Revenue</th><th>GM%</th>').join('')}
+    </tr></thead><tbody>
+    ${projNames.map(pn=>`<tr>
+      <td style="font-weight:600">${pn}</td>
+      ${years.map(yr=>{
+        const proj=YEAR_DATA[yr]?.PROJECTS?.[pn];
+        if(!proj)return'<td colspan="2" style="color:var(--text2);text-align:center">—</td>';
+        const r=calcProject(proj);
+        return`<td class="mn pos">${fmtK(r.annual.revTRY)}₺</td><td class="mn ${vc(r.annual.gm)}">${fmtPct(r.annual.gmPct)}</td>`;
+      }).join('')}
+    </tr>`).join('')}
+    </tbody></table></div></div>`;
+  }
+
+  document.getElementById('multiyear-content').innerHTML=html;
+
+  // Render charts
+  setTimeout(()=>{
+    if(CHS.myRev)CHS.myRev.destroy();
+    CHS.myRev=new Chart(document.getElementById('ch-my-rev'),{type:'bar',
+      data:{labels:years.map(String),datasets:[
+        {label:'Revenue (M₺)',data:yearRows.map(r=>+(r.rev/1e6).toFixed(1)),backgroundColor:'rgba(74,108,247,.7)',borderRadius:5},
+        {label:'GM (M₺)',data:yearRows.map(r=>+(r.gm/1e6).toFixed(1)),backgroundColor:yearRows.map(r=>r.gm>=0?'rgba(0,200,150,.7)':'rgba(232,64,87,.7)'),borderRadius:5},
+      ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:t2,font:{size:11}}}},
+        scales:{y:{ticks:{callback:v=>v+'M',color:t2},grid:{color:bc}},x:{ticks:{color:t2},grid:{display:false}}}}});
+
+    if(CHS.myGM)CHS.myGM.destroy();
+    CHS.myGM=new Chart(document.getElementById('ch-my-gm'),{type:'line',
+      data:{labels:years.map(String),datasets:[{label:'GM %',
+        data:yearRows.map(r=>+(r.gmPct*100).toFixed(1)),
+        borderColor:'#00c896',backgroundColor:'rgba(0,200,150,.1)',fill:true,tension:.3,pointRadius:5,borderWidth:2.5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{y:{ticks:{callback:v=>v+'%',color:t2},grid:{color:bc}},x:{ticks:{color:t2},grid:{display:false}}}}});
+  },50);
+}
+
+function switchToYear(yr){
+  saveYearSnapshot();
+  ACTIVE_YEAR=yr;
+  loadYearData(yr);
+  const el=document.getElementById('year-display');if(el)el.textContent=yr;
+  recalcAll();
+  showToast(`Jahr ${yr} geladen ✓`,'ok');
+  SP('dashboard');
+}
+
+function cloneYearBudget(){
+  const targetYr=ACTIVE_YEAR+1;
+  if(YEAR_DATA[targetYr]&&!confirm(`${targetYr} existiert bereits. Überschreiben?`))return;
+  saveYearSnapshot();
+  YEAR_DATA[targetYr]=JSON.parse(JSON.stringify(YEAR_DATA[ACTIVE_YEAR]));
+  YEAR_DATA[targetYr].ACTUALS={};
+  YEAR_DATA[targetYr].AUDIT_LOG=[];
+  YEAR_DATA[targetYr].SLA_DATA={};
+  showToast(`${ACTIVE_YEAR} → ${targetYr} geklont ✓`,'ok');
+  autoSave();
+  renderMultiYear();
+}
+
 // ══════════════════ BOOT ══════════════════
 function bootApp(){
+  initOperationalData();
+  // Init year data snapshot for current year
+  if(!YEAR_DATA[ACTIVE_YEAR]) saveYearSnapshot();
+  const yd=document.getElementById('year-display');
+  if(yd)yd.textContent=ACTIVE_YEAR;
   buildAllProjPages();
   renderSidebarNav();
   renderDashboard();
