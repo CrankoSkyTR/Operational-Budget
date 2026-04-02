@@ -2229,28 +2229,35 @@ function bootApp(){
 
 // ── Startup: auto-init Supabase, restore session ──
 window.addEventListener('DOMContentLoaded', async () => {
-  initSB(); // always connects — credentials are hardcoded
+  initSB();
   updateLoginBanner();
   updateSBTopbarBtn();
-  // Show status in setup modal if it's ever opened
   const st=document.getElementById('sb-status');
   if(st&&SB_MODE)st.textContent='✓ Verbunden mit '+SB_URL;
-  // Restore session from stored token
-  if(SB_MODE){
-    const token=localStorage.getItem('bpo_sb_token');
-    if(token){
-      try{
-        const user=await sbGetUser(token);
-        if(user?.id){
-          SB_TOKEN=token;
-          const{data:profiles}=await sbSelect('bpo_users','id=eq.'+user.id);
-          const p=profiles?.[0];
-          ME={id:user.id,email:user.email,name:p?.name||user.email.split('@')[0],role:p?.role||'Manager',assignedProject:p?.assigned_project||null};
-          await sbLoad();
-          launchApp();
-        }
-      }catch(e){localStorage.removeItem('bpo_sb_token');}
-    }
+
+  // ── Force-clear any token whose role may be stale ──
+  // This ensures users always get a fresh profile on next load
+  // after a role change in Supabase. Safe to remove after first login.
+  const cachedToken=localStorage.getItem('bpo_sb_token');
+  if(cachedToken){
+    // Proactively validate and refresh profile before launching
+    try{
+      const user=await sbGetUser(cachedToken);
+      if(user?.id){
+        SB_TOKEN=cachedToken;
+        const{data:profiles}=await sbSelect('bpo_users','id=eq.'+user.id);
+        const p=profiles?.[0];
+        if(!p){localStorage.removeItem('bpo_sb_token');return;}
+        ME={id:user.id,email:user.email,
+            name:p.name||user.email.split('@')[0],
+            role:p.role||'Manager',
+            assignedProject:p.assigned_project||null};
+        await sbLoad();
+        launchApp();
+        return;
+      }
+    }catch(e){}
+    localStorage.removeItem('bpo_sb_token');
   }
 });
 </script>
