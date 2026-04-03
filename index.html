@@ -1125,7 +1125,8 @@ function calcProject(proj, ov) {
       const hc = Math.round((ag.hc[m] || 0) * (1 - (ov2.hcCut || 0)));
       if (!hc) continue;
       const net  = Math.max(ag.salary, mw);
-      const ec   = net * 1.25 * (1 + ag.bonus);
+      // Net → Gross employer cost: net × (1 + socialPct) × (1 + bonus%)
+      const ec   = net * (1 + ASM.socialPct) * (1 + ag.bonus);
       const cost = hc * ec * (1 + (ov2.costBoost || 0));
       if (ag.isBuffer) {
         bufSal += cost; bufferAg += hc;
@@ -1141,7 +1142,7 @@ function calcProject(proj, ov) {
     const totalAg = billingAg + bufferAg;
     let mgC = 0;
     for (const mg of proj.mgmt)
-      mgC += mg.hc * (Math.max(mg.salary, mw) * 1.25 * (1 + (mg.bonus || ASM.mgmtBonus))) * (1 + (ov2.costBoost || 0));
+      mgC += mg.hc * (Math.max(mg.salary, mw) * (1 + ASM.socialPct) * (1 + (mg.bonus || ASM.mgmtBonus))) * (1 + (ov2.costBoost || 0));
 
     const totalHC = totalAg + proj.mgmt.reduce((s, mg) => s + mg.hc, 0);
     const otherC  = (totalHC * ((proj.costs.food||0) + (proj.costs.transport||0) + (proj.costs.it||0) + (proj.costs.other||0)) + (proj.costs.sales||0)) * (1 + (ov2.costBoost||0));
@@ -1460,16 +1461,16 @@ function buildProjPage(pn){
         <th style="text-align:center;padding:6px 4px;color:var(--text2)">Typ</th>
         ${MONTHS.map(m=>`<th style="text-align:center;padding:6px 3px;color:var(--text2);min-width:38px">${m}</th>`).join('')}
         <th style="text-align:center;padding:6px 8px;color:var(--text2)">Σ</th>
-        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Salary (TRY)</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Net Salary (TRY)</th>
         <th style="text-align:right;padding:6px 8px;color:var(--text2)">Bonus %</th>
-        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Avg Monthly Cost</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Gross Cost/mo (avg)</th>
         <th></th>
       </tr></thead>
       <tbody>
         ${proj.agents.map((ag,i)=>{
           const avgHC=ag.hc.reduce((s,h)=>s+h,0)/12;
           const net=Math.max(ag.salary,ASM.minWage);
-          const monthlyCost=(net*1.25*(1+ag.bonus)*avgHC).toFixed(0);
+          const monthlyCost=(net*(1+ASM.socialPct)*(1+ag.bonus)*avgHC).toFixed(0);
           return`<tr style="border-bottom:1px solid var(--border);${ag.isBuffer?'background:rgba(245,158,11,.04)':''}">
             <td style="padding:5px 8px;font-weight:600;color:var(--text)">${lBadge(ag.lang)} ${ag.name}</td>
             <td style="text-align:center;padding:5px 4px">
@@ -1869,7 +1870,7 @@ function renderCosts(){
       const proj=PROJECTS[pn];
       for(const ag of proj.agents){
         const avgHC=ag.hc.reduce((s,h)=>s+h,0)/12;
-        const moCost=Math.max(ag.salary,ASM.minWage)*1.25*(1+ag.bonus)*avgHC;
+        const moCost=Math.max(ag.salary,ASM.minWage)*(1+ASM.socialPct)*(1+ag.bonus)*avgHC;
         const annCost=moCost*12;
         h+=`<tr><td style="font-size:11px"><span style="width:7px;height:7px;border-radius:50%;background:${proj.color};display:inline-block;margin-right:5px"></span>${pn}</td>
           <td>${ag.name}</td><td>${lBadge(ag.lang)}</td>
@@ -2024,11 +2025,11 @@ function saveComment(){
 // ══════════════════ ASSUMPTIONS ══════════════════
 function renderAssumptions(){
   const defs=[
-    {k:'minWage',   l:'Min. Wage Net 2025 (TRY)',s:'₺',h:'Current Turkish minimum net wage',hl:true},
+    {k:'minWage',   l:'Min. Wage (Net) TRY',     s:'₺',h:'Turkish minimum net wage — used as salary floor. All entered salaries are net.',hl:true},
     {k:'minWageInc',l:'Min. Wage Increase %',    s:'%',h:'Expected 2026 increase',pct:true,hl:true},
     {k:'bonusPct',  l:'Agent Bonus %',           s:'%',h:'Monthly bonus on gross',pct:true},
     {k:'mgmtBonus', l:'Mgmt Bonus %',            s:'%',h:'Management bonus rate',pct:true},
-    {k:'socialPct', l:'Social Contribution %',   s:'%',h:'Employer social security',pct:true},
+    {k:'socialPct', l:'Employer Social (SGK) %', s:'%',h:'Employer social security — used to gross-up net salaries. Turkish SGK ≈ 20.5%',pct:true},
     {k:'inflation', l:'Inflation Ratio',         s:'%',h:'Annual price inflation estimate',pct:true},
   ];
   document.getElementById('asm-grid').innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:18px">${defs.map(d=>`
@@ -2265,8 +2266,8 @@ function exportExcel(){
       ...proj.agents.map(ag=>[ag.name+' ['+ag.lang+']',...ag.hc,ag.hc.reduce((s,h)=>s+h,0)]),
       ['Total',...MONTHS.map((_,mi)=>proj.agents.reduce((s,ag)=>s+(ag.hc[mi]||0),0)),proj.agents.reduce((s,ag)=>s+ag.hc.reduce((ss,h)=>ss+h,0),0)],
       [''],['SALARY CONFIG','Net Salary','Bonus %','Multiplier','Avg Monthly Cost'],
-      ...proj.agents.map(ag=>[ag.name+' ['+ag.lang+']',Math.round(ag.salary),+(ag.bonus*100).toFixed(1),+(1.25*(1+ag.bonus)).toFixed(3),Math.round(Math.max(ag.salary,ASM.minWage)*1.25*(1+ag.bonus))]),
-      ...proj.mgmt.map(mg=>[mg.name+' (Mgmt)',Math.round(mg.salary),+((mg.bonus||0.07)*100).toFixed(1),+(1.25*(1+(mg.bonus||0.07))).toFixed(3),Math.round(Math.max(mg.salary,ASM.minWage)*1.25*(1+(mg.bonus||0.07)))]),
+      ...proj.agents.map(ag=>[ag.name+' ['+ag.lang+']',Math.round(ag.salary),+(ag.bonus*100).toFixed(1),+((1+ASM.socialPct)*(1+ag.bonus)).toFixed(3),Math.round(Math.max(ag.salary,ASM.minWage)*(1+ASM.socialPct)*(1+ag.bonus))]),
+      ...proj.mgmt.map(mg=>[mg.name+' (Mgmt)',Math.round(mg.salary),+((mg.bonus||0.07)*100).toFixed(1),+((1+ASM.socialPct)*(1+(mg.bonus||0.07))).toFixed(3),Math.round(Math.max(mg.salary,ASM.minWage)*(1+ASM.socialPct)*(1+(mg.bonus||0.07)))]),
       [''],['REVENUE','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Full Year'],
       ['EUR Rate/Hour',...proj.revEUR,'avg: '+(proj.revEUR.reduce((s,v)=>s+v,0)/12).toFixed(1)],
       ['FX Rate',...FX.map(v=>+v.toFixed(2)),''],
@@ -2283,7 +2284,7 @@ function exportExcel(){
       ['Gross Margin TRY',...r.months.map(m=>Math.round(m.gm)),Math.round(r.annual.gm)],
       ['GM %',...r.months.map(m=>+(m.gmPct*100).toFixed(2)),+(r.annual.gmPct*100).toFixed(2)],
       [''],['COST BY LANGUAGE','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Annual'],
-      ...proj.agents.reduce((g,ag)=>{const ex=g.find(x=>x.l===ag.lang);if(ex)ex.m=ex.m.map((v,mi)=>v+Math.max(ag.salary,ASM.minWage)*1.25*(1+ag.bonus)*(ag.hc[mi]||0));else g.push({l:ag.lang,m:MONTHS.map((_,mi)=>Math.max(ag.salary,ASM.minWage)*1.25*(1+ag.bonus)*(ag.hc[mi]||0))});return g;},[]).map(x=>[({DE:'German',CH:'Swiss',FR:'French'}[x.l]||x.l)+' ['+x.l+']',...x.m.map(v=>Math.round(v)),Math.round(x.m.reduce((s,v)=>s+v,0))]),
+      ...proj.agents.reduce((g,ag)=>{const ex=g.find(x=>x.l===ag.lang);if(ex)ex.m=ex.m.map((v,mi)=>v+Math.max(ag.salary,ASM.minWage)*(1+ASM.socialPct)*(1+ag.bonus)*(ag.hc[mi]||0));else g.push({l:ag.lang,m:MONTHS.map((_,mi)=>Math.max(ag.salary,ASM.minWage)*(1+ASM.socialPct)*(1+ag.bonus)*(ag.hc[mi]||0))});return g;},[]).map(x=>[({DE:'German',CH:'Swiss',FR:'French'}[x.l]||x.l)+' ['+x.l+']',...x.m.map(v=>Math.round(v)),Math.round(x.m.reduce((s,v)=>s+v,0))]),
     ];
     const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:30},...Array(13).fill({wch:14})];
     XLSX.utils.book_append_sheet(wb,ws,pn.replace(/[:\\\/\?\*\[\]]/g,'').substring(0,31));
