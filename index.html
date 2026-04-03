@@ -637,13 +637,13 @@ create trigger on_auth_user_created
       </div>
 
       <!-- User table -->
-      <div id="users-content"><div style="color:var(--text2);padding:16px;font-size:13px">Lade Benutzer…</div></div>
+      <div id="users-content"><div style="color:var(--text2);padding:16px;font-size:13px">Loading users…</div></div>
     </div>
 
     <!-- ═══ MULTI-YEAR TREND ═══ -->
     <div class="page" id="page-multiyear">
-      <div class="shead"><div><div class="stitle">Multi-Year Analysis</div><div class="ssub">Jahr-zu-Jahr Vergleich · Trends · Budget klonen</div></div>
-        <button class="btn btn-gold btn-sm" onclick="cloneYearBudget()">📋 Jahr klonen</button>
+      <div class="shead"><div><div class="stitle">Multi-Year Analysis</div><div class="ssub">Year-on-year comparison · Trends · Clone budget</div></div>
+        <button class="btn btn-gold btn-sm" onclick="cloneYearBudget()">📋 Clone Year</button>
       </div>
       <div id="multiyear-content"></div>
     </div>
@@ -739,6 +739,46 @@ create trigger on_auth_user_created
       <button class="btn btn-ghost" onclick="M('m-edit-user')">Cancel</button>
     </div>
     <div id="eu-status" style="margin-top:10px;font-size:12px;font-weight:500"></div>
+  </div>
+</div>
+
+
+<!-- My Profile Modal -->
+<div class="mo" id="m-my-profile">
+  <div class="mbox" style="width:480px">
+    <button class="mcl" onclick="M('m-my-profile')">✕</button>
+    <h2 class="mh2">My Profile</h2>
+    <p class="mp">Update your display name or change your password.</p>
+    <div class="fr">
+      <div class="ff"><label>Display Name</label>
+        <input id="mp-name" placeholder="Your name" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--ibg);color:var(--text);font-size:13px;outline:none">
+      </div>
+      <div class="ff"><label>Email (read only)</label>
+        <input id="mp-email" disabled style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--surface3);color:var(--text2);font-size:13px;outline:none">
+      </div>
+    </div>
+    <div class="fr">
+      <div class="ff"><label>Role</label>
+        <input id="mp-role" disabled style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--surface3);color:var(--text2);font-size:13px;outline:none">
+      </div>
+      <div class="ff"></div>
+    </div>
+    <div style="border-top:1px solid var(--border);margin:14px 0 12px;padding-top:14px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Change Password</div>
+      <div class="fr">
+        <div class="ff"><label>New Password</label>
+          <input id="mp-pw" type="password" placeholder="Min. 8 characters" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--ibg);color:var(--text);font-size:13px;outline:none">
+        </div>
+        <div class="ff"><label>Confirm Password</label>
+          <input id="mp-pw2" type="password" placeholder="Repeat password" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--ibg);color:var(--text);font-size:13px;outline:none">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:7px;margin-top:4px">
+      <button class="btn btn-gold" onclick="saveMyProfile()">Save Changes</button>
+      <button class="btn btn-ghost" onclick="M('m-my-profile')">Cancel</button>
+    </div>
+    <div id="mp-status" style="margin-top:10px;font-size:12px;font-weight:500"></div>
   </div>
 </div>
 
@@ -1015,10 +1055,10 @@ let CAP_DATA={};
 let CONTRACT_DATA={};
 
 let PROJECTS={
-  'SALT Care':{id:'p0',color:'#4a6cf7',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH & WFO',invoicing:'Production Hours'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(9),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(1),salary:47250,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:Array(12).fill(5),salary:42250,bonus:0.07,isBuffer:false},{name:'Buffer DE',lang:'DE',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true},{name:'Buffer FR',lang:'FR',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'TL French',hc:1,salary:55000,bonus:0.07},{name:'Quality',hc:1,salary:60000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'Production Hours',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
-  'SALT RET':{id:'p1',color:'#8b5cf6',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(12),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(3),salary:47250,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
-  'SALT TLS':{id:'p2',color:'#00c896',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'ICM'},agents:[{name:'Swiss',lang:'CH',hc:[10,9,8,8,8,8,8,10,10,10,10,10],salary:45000,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:[6,6,6,6,6,6,6,5,5,5,5,5],salary:38400,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'ICM',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
-  'SALT OB':{id:'p3',color:'#f0a500',meta:{client:'SALT OB',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'ACQ',lang:'—',hc:Array(12).fill(12),salary:45000,bonus:0.07,isBuffer:false},{name:'Fiber',lang:'—',hc:[3,3,3,3,3,3,3,4,4,4,4,4],salary:45000,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT Care':{id:'p0',color:'#4a6cf7',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH & WFO',invoicing:'Production Hours'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(9),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(1),salary:47250,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:Array(12).fill(5),salary:42250,bonus:0.07,isBuffer:false},{name:'Buffer DE',lang:'DE',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true},{name:'Buffer FR',lang:'FR',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'TL French',hc:1,salary:55000,bonus:0.07},{name:'Quality',hc:1,salary:60000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'Production Hours',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT RET':{id:'p1',color:'#8b5cf6',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(12),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(3),salary:47250,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT TLS':{id:'p2',color:'#00c896',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'ICM'},agents:[{name:'Swiss',lang:'CH',hc:[10,9,8,8,8,8,8,10,10,10,10,10],salary:45000,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:[6,6,6,6,6,6,6,5,5,5,5,5],salary:38400,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'ICM',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT OB':{id:'p3',color:'#f0a500',meta:{client:'SALT OB',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'ACQ',lang:'—',hc:Array(12).fill(12),salary:45000,bonus:0.07,isBuffer:false},{name:'Fiber',lang:'—',hc:[3,3,3,3,3,3,3,4,4,4,4,4],salary:45000,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
 };
 
 // ══════════════════ CALC ══════════════════
@@ -1104,7 +1144,7 @@ function calcProject(proj, ov) {
       mgC += mg.hc * (Math.max(mg.salary, mw) * 1.25 * (1 + (mg.bonus || ASM.mgmtBonus))) * (1 + (ov2.costBoost || 0));
 
     const totalHC = totalAg + proj.mgmt.reduce((s, mg) => s + mg.hc, 0);
-    const otherC  = totalHC * ((proj.costs.food||0) + (proj.costs.transport||0) + (proj.costs.it||0) + (proj.costs.other||0)) * (1 + (ov2.costBoost||0));
+    const otherC  = (totalHC * ((proj.costs.food||0) + (proj.costs.transport||0) + (proj.costs.it||0) + (proj.costs.other||0)) + (proj.costs.sales||0)) * (1 + (ov2.costBoost||0));
     const avgNet  = billingAg > 0
       ? proj.agents.filter(ag => !ag.isBuffer).reduce((s, ag) => s + Math.max(ag.salary, mw) * (ag.hc[m]||0), 0) / Math.max(billingAg, 1)
       : mw;
@@ -1273,33 +1313,33 @@ function buildProjPage(pn){
       const useUnits=(proj.unitPriceEUR||[]).some(v=>v>0);
       return `<div class="card">
         <div class="ct">Revenue — Production Hours ${modelBadge}</div>
-        <div class="cs">Einheitlich für alle Monate setzen oder Monatstabelle unten aufklappen</div>
+        <div class="cs">Set uniform for all months, or expand monthly table below</div>
         <div class="g4" style="margin-bottom:12px">
-          <div class="ff"><label>Rate (EUR/Std) — alle Monate</label>
+          <div class="ff"><label>Rate (EUR/hr) — all months</label>
             <input type="number" class="ci" style="width:90px" value="${proj.rateEUR?.[0]??135}" min="0" step="0.5"
               onchange="setAllRates('${pn}','Production Hours',parseFloat(this.value)||0)">
           </div>
-          <div class="ff"><label>Stückpreis (EUR/Einheit) — optional</label>
+          <div class="ff"><label>Unit Price (EUR/unit) — optional</label>
             <input type="number" class="ci" style="width:90px;color:var(--teal)" value="${proj.unitPriceEUR?.[0]??0}" min="0" step="0.01"
               onchange="setAllField('${pn}','unitPriceEUR',parseFloat(this.value)||0)">
           </div>
-          <div class="ff"><label>Einheiten/Tag/FTE — optional</label>
+          <div class="ff"><label>Units/Day/FTE — optional</label>
             <input type="number" class="ci" style="width:90px;color:var(--teal)" value="${proj.unitsPerDay?.[0]??0}" min="0" step="1"
               onchange="setAllField('${pn}','unitsPerDay',parseFloat(this.value)||0)">
           </div>
-          <div class="ff"><label style="color:var(--green)">→ Revenue/Jahr (EUR)</label>
+          <div class="ff"><label style="color:var(--green)">→ Revenue/Year (EUR)</label>
             <div style="font-family:var(--fh);font-size:20px;font-weight:700;color:var(--green);padding:6px 0">${fmtEUR(r.annual.revEUR)}</div>
           </div>
         </div>
         <details style="margin-top:4px">
-          <summary style="cursor:pointer;font-size:12px;color:var(--text2);padding:4px 0">▸ Monatliche Raten anpassen</summary>
+          <summary style="cursor:pointer;font-size:12px;color:var(--text2);padding:4px 0">▸ Adjust monthly rates</summary>
           <div class="tw" style="margin-top:8px"><table class="bt" style="min-width:900px"><thead><tr>
-            <th style="text-align:left">Zeile</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Ø</th>
+            <th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Ø</th>
           </tr></thead><tbody>
             <tr class="revr"><td>Rate (EUR/Std)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:52px" data-p="${pn}" data-field="rateEUR" data-mi="${mi}" value="${proj.rateEUR?.[mi]??135}" onchange="onRateChange(this)" type="number" min="0" step="0.5"></td>`).join('')}<td class="mn">${((proj.rateEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(1)}</td></tr>
-            <tr><td style="color:var(--teal)">Stückpreis (EUR)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--teal);width:52px" data-p="${pn}" data-field="unitPriceEUR" data-mi="${mi}" value="${proj.unitPriceEUR?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="0.01"></td>`).join('')}<td class="mn">${((proj.unitPriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(2)}</td></tr>
-            <tr><td style="color:var(--teal)">Einh./Tag/FTE</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--teal);width:52px" data-p="${pn}" data-field="unitsPerDay" data-mi="${mi}" value="${proj.unitsPerDay?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="1"></td>`).join('')}<td class="mn">${((proj.unitsPerDay||[]).reduce((s,v)=>s+v,0)/12).toFixed(0)}</td></tr>
-            <tr><td style="color:var(--text2);font-size:11px">Prod.Tage</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.pd}</td>`).join('')}<td></td></tr>
+            <tr><td style="color:var(--teal)">Unit Price (EUR)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--teal);width:52px" data-p="${pn}" data-field="unitPriceEUR" data-mi="${mi}" value="${proj.unitPriceEUR?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="0.01"></td>`).join('')}<td class="mn">${((proj.unitPriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(2)}</td></tr>
+            <tr><td style="color:var(--teal)">Units/Day/FTE</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--teal);width:52px" data-p="${pn}" data-field="unitsPerDay" data-mi="${mi}" value="${proj.unitsPerDay?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="1"></td>`).join('')}<td class="mn">${((proj.unitsPerDay||[]).reduce((s,v)=>s+v,0)/12).toFixed(0)}</td></tr>
+            <tr><td style="color:var(--text2);font-size:11px">Prod. Days</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.pd}</td>`).join('')}<td></td></tr>
             <tr class="revr"><td style="font-weight:700">Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
           </tbody></table></div>
         </details>
@@ -1308,28 +1348,28 @@ function buildProjPage(pn){
     if(model==='FTE'){
       return `<div class="card">
         <div class="ct">Revenue — FTE ${modelBadge}</div>
-        <div class="cs">Festpreis pro Kopf pro Monat × Billing FTE</div>
+        <div class="cs">Fixed price per head per month × Billing FTE</div>
         <div class="g4" style="margin-bottom:12px">
-          <div class="ff"><label>FTE Preis (EUR/Kopf/Mo) — alle Monate</label>
+          <div class="ff"><label>FTE Price (EUR/head/mo) — all months</label>
             <input type="number" class="ci" style="width:90px" value="${proj.ftePriceEUR?.[0]??3200}" min="0" step="50"
               onchange="setAllRates('${pn}','FTE',parseFloat(this.value)||0)">
           </div>
-          <div class="ff"><label>Billing FTE (Ø)</label>
+          <div class="ff"><label>Billing FTE (avg)</label>
             <div style="font-family:var(--fh);font-size:20px;font-weight:700;color:var(--text);padding:6px 0">${r.annual.avgFTE}</div>
           </div>
-          <div class="ff"><label>Revenue/Mo (EUR, Ø)</label>
+          <div class="ff"><label>Revenue/Month (EUR, avg)</label>
             <div style="font-family:var(--fh);font-size:20px;font-weight:700;color:var(--blue);padding:6px 0">${fmtEUR(r.annual.revEUR/12)}</div>
           </div>
-          <div class="ff"><label style="color:var(--green)">→ Revenue/Jahr (EUR)</label>
+          <div class="ff"><label style="color:var(--green)">→ Revenue/Year (EUR)</label>
             <div style="font-family:var(--fh);font-size:20px;font-weight:700;color:var(--green);padding:6px 0">${fmtEUR(r.annual.revEUR)}</div>
           </div>
         </div>
         <details style="margin-top:4px">
-          <summary style="cursor:pointer;font-size:12px;color:var(--text2);padding:4px 0">▸ Monatliche Preise anpassen</summary>
+          <summary style="cursor:pointer;font-size:12px;color:var(--text2);padding:4px 0">▸ Adjust monthly prices</summary>
           <div class="tw" style="margin-top:8px"><table class="bt" style="min-width:900px"><thead><tr>
-            <th style="text-align:left">Zeile</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Ø</th>
+            <th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Ø</th>
           </tr></thead><tbody>
-            <tr class="revr"><td>FTE Preis (EUR/Kopf)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:60px" data-p="${pn}" data-field="ftePriceEUR" data-mi="${mi}" value="${proj.ftePriceEUR?.[mi]??3200}" onchange="onRateChange(this)" type="number" min="0" step="50"></td>`).join('')}<td class="mn">${((proj.ftePriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(0)}</td></tr>
+            <tr class="revr"><td>FTE Price (EUR/head)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:60px" data-p="${pn}" data-field="ftePriceEUR" data-mi="${mi}" value="${proj.ftePriceEUR?.[mi]??3200}" onchange="onRateChange(this)" type="number" min="0" step="50"></td>`).join('')}<td class="mn">${((proj.ftePriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(0)}</td></tr>
             <tr><td style="color:var(--text2);font-size:11px">Billing FTE</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.billingAg}</td>`).join('')}<td class="mn">${r.annual.avgFTE}</td></tr>
             <tr class="revr"><td style="font-weight:700">Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
           </tbody></table></div>
@@ -1340,34 +1380,34 @@ function buildProjPage(pn){
     const cfg=proj.icmConfig||{};
     return `<div class="card">
       <div class="ct">Revenue — ICM ${modelBadge}</div>
-      <div class="cs">Basis immer bezahlt · Bonus bei Zielüberschreitung <em>oder</em> Stückpreis × Ist-Einheiten (wenn Stückpreis &gt; 0)</div>
+      <div class="cs">Base always paid · Bonus on overachievement <em>or</em> Unit Price × Actual Units (when Unit Price &gt; 0)</div>
       <div class="g4" style="margin-bottom:12px">
-        <div class="ff"><label>Basis (EUR/Mo) — alle Monate</label>
+        <div class="ff"><label>Base (EUR/mo) — all months</label>
           <input type="number" class="ci" style="width:90px" value="${cfg.baseEUR?.[0]??0}" min="0" step="500"
             onchange="setAllICMField('${pn}','baseEUR',parseFloat(this.value)||0)">
         </div>
-        <div class="ff"><label>Stückpreis (EUR/Einheit) — Mode B</label>
+        <div class="ff"><label>Unit Price (EUR/unit) — Mode B</label>
           <input type="number" class="ci" style="width:90px;color:var(--teal)" value="${cfg.unitPriceEUR?.[0]??0}" min="0" step="0.01"
             onchange="setAllICMField('${pn}','unitPriceEUR',parseFloat(this.value)||0)">
         </div>
-        <div class="ff"><label>Bonus % von Basis — Mode A</label>
+        <div class="ff"><label>Bonus % of Base — Mode A</label>
           <input type="number" class="ci" style="width:70px;color:var(--purple)" value="${((cfg.bonusPct?.[0]??0.15)*100).toFixed(0)}" min="0" max="200" step="1"
             onchange="setAllICMField('${pn}','bonusPct',parseFloat(this.value)/100)">
         </div>
-        <div class="ff"><label style="color:var(--green)">→ Revenue/Jahr (EUR)</label>
+        <div class="ff"><label style="color:var(--green)">→ Revenue/Year (EUR)</label>
           <div style="font-family:var(--fh);font-size:20px;font-weight:700;color:var(--green);padding:6px 0">${fmtEUR(r.annual.revEUR)}</div>
         </div>
       </div>
       <details style="margin-top:4px">
-        <summary style="cursor:pointer;font-size:12px;color:var(--text2);padding:4px 0">▸ Monatliche ICM-Werte anpassen</summary>
+        <summary style="cursor:pointer;font-size:12px;color:var(--text2);padding:4px 0">▸ Adjust monthly ICM values</summary>
         <div class="tw" style="margin-top:8px"><table class="bt" style="min-width:900px"><thead><tr>
-          <th style="text-align:left">Zeile</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Σ</th>
+          <th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Σ</th>
         </tr></thead><tbody>
-          <tr><td>Basis (EUR)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--blue);width:62px" data-p="${pn}" data-field="icm_baseEUR" data-mi="${mi}" value="${cfg.baseEUR?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="500"></td>`).join('')}<td class="mn">${fmtEUR((cfg.baseEUR||[]).reduce((s,v)=>s+v,0))}</td></tr>
-          <tr><td style="color:var(--teal)">Stückpreis (EUR)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--teal);width:52px" data-p="${pn}" data-field="icm_unitPriceEUR" data-mi="${mi}" value="${cfg.unitPriceEUR?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="0.01"></td>`).join('')}<td class="mn">${((cfg.unitPriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(3)}</td></tr>
+          <tr><td>Base (EUR)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--blue);width:62px" data-p="${pn}" data-field="icm_baseEUR" data-mi="${mi}" value="${cfg.baseEUR?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="500"></td>`).join('')}<td class="mn">${fmtEUR((cfg.baseEUR||[]).reduce((s,v)=>s+v,0))}</td></tr>
+          <tr><td style="color:var(--teal)">Unit Price (EUR)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--teal);width:52px" data-p="${pn}" data-field="icm_unitPriceEUR" data-mi="${mi}" value="${cfg.unitPriceEUR?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="0.01"></td>`).join('')}<td class="mn">${((cfg.unitPriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(3)}</td></tr>
           <tr><td>Bonus %</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--purple);width:44px" data-p="${pn}" data-field="icm_bonusPct" data-mi="${mi}" value="${((cfg.bonusPct?.[mi]??0.15)*100).toFixed(0)}" onchange="onRateChange(this)" type="number" min="0" step="1"></td>`).join('')}<td></td></tr>
-          <tr><td style="color:var(--gold)">Soll-Einheiten</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--gold);width:58px" data-p="${pn}" data-field="icm_targetUnits" data-mi="${mi}" value="${cfg.targetUnits?.[mi]??1000}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.targetUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
-          <tr><td style="color:var(--green)">Ist-Einheiten</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:58px" data-p="${pn}" data-field="icm_actualUnits" data-mi="${mi}" value="${cfg.actualUnits?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.actualUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
+          <tr><td style="color:var(--gold)">Target Units</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--gold);width:58px" data-p="${pn}" data-field="icm_targetUnits" data-mi="${mi}" value="${cfg.targetUnits?.[mi]??1000}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.targetUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
+          <tr><td style="color:var(--green)">Actual Units</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:58px" data-p="${pn}" data-field="icm_actualUnits" data-mi="${mi}" value="${cfg.actualUnits?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.actualUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
           <tr class="revr"><td style="font-weight:700">Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
         </tbody></table></div>
       </details>
@@ -1386,15 +1426,15 @@ function buildProjPage(pn){
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn btn-ghost btn-sm" onclick="openEditProject('${pn}')">✏ Edit</button>
       <button class="btn btn-outline btn-sm" onclick="openAddAgent('${pn}')">+ Agent</button>
-      <button class="btn btn-outline btn-sm" onclick="openMgmtModal('${pn}')">⚙ Mgmt & Kosten</button>
+      <button class="btn btn-outline btn-sm" onclick="openMgmtModal('${pn}')">⚙ Mgmt & Costs</button>
     </div>
   </div>
 
   <!-- KPI Summary Bar -->
   <div class="sbar">
-    <div class="sbi"><div class="l">Revenue / Jahr</div><div class="v g">${fmtK(aR)} ₺</div><div style="font-size:10px;color:var(--text2)">${fmtEUR(r.annual.revEUR)}</div></div>
+    <div class="sbi"><div class="l">Revenue / Year</div><div class="v g">${fmtK(aR)} ₺</div><div style="font-size:10px;color:var(--text2)">${fmtEUR(r.annual.revEUR)}</div></div>
     <div class="sbsep"></div>
-    <div class="sbi"><div class="l">Gesamtkosten</div><div class="v">${fmtK(aC)} ₺</div>${r.annual.bufCost>0?`<div style="font-size:10px;color:var(--amber)">inkl. ${fmtK(r.annual.bufCost)}₺ Buffer</div>`:''}</div>
+    <div class="sbi"><div class="l">Total Costs</div><div class="v">${fmtK(aC)} ₺</div>${r.annual.bufCost>0?`<div style="font-size:10px;color:var(--amber)">incl. ${fmtK(r.annual.bufCost)}₺ Buffer</div>`:''}</div>
     <div class="sbsep"></div>
     <div class="sbi"><div class="l">Gross Margin</div><div class="v ${vc(aG)==='pos'?'gn':'rd'}">${fmtK(aG)} ₺</div></div>
     <div class="sbsep"></div>
@@ -1411,8 +1451,8 @@ function buildProjPage(pn){
 
   <!-- ── Section 2: Headcount Form ── -->
   <div class="card">
-    <div class="ct">Headcount & Gehalt</div>
-    <div class="cs">Anzahl Agenten pro Gruppe — Billing Agents generieren Revenue, Buffer nur Kosten</div>
+    <div class="ct">Headcount & Salary</div>
+    <div class="cs">Agents per group — Billing Agents generate revenue, Buffer Agents are cost-only</div>
     ${proj.agents.length===0?`<div style="color:var(--text2);font-size:13px;padding:8px 0">Noch keine Agents. Klick auf "+ Agent" oben.</div>`:`
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="border-bottom:1px solid var(--border)">
@@ -1420,9 +1460,9 @@ function buildProjPage(pn){
         <th style="text-align:center;padding:6px 4px;color:var(--text2)">Typ</th>
         ${MONTHS.map(m=>`<th style="text-align:center;padding:6px 3px;color:var(--text2);min-width:38px">${m}</th>`).join('')}
         <th style="text-align:center;padding:6px 8px;color:var(--text2)">Σ</th>
-        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Gehalt (TRY)</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Salary (TRY)</th>
         <th style="text-align:right;padding:6px 8px;color:var(--text2)">Bonus %</th>
-        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Monatskost Ø</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Avg Monthly Cost</th>
         <th></th>
       </tr></thead>
       <tbody>
@@ -1473,33 +1513,35 @@ function buildProjPage(pn){
   <!-- ── Section 3: Cost Summary ── -->
   <div class="g2">
     <div class="card">
-      <div class="ct">Kosten-Zusammenfassung</div>
-      <div class="cs">Berechnete Jahreskosten nach Kategorie</div>
+      <div class="ct">Cost Summary</div>
+      <div class="cs">Calculated annual costs by category</div>
       <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--text2)">Agent-Gehälter (Billing)</td><td style="text-align:right;font-weight:600">${fmtK(r.annual.cost - r.annual.bufCost - r.months.reduce((s,m)=>s+m.mgC,0) - r.months.reduce((s,m)=>s+m.otherC,0) - r.months.reduce((s,m)=>s+m.otC,0))}₺</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--text2)">Agent Salaries (Billing)</td><td style="text-align:right;font-weight:600">${fmtK(r.annual.cost - r.annual.bufCost - r.months.reduce((s,m)=>s+m.mgC,0) - r.months.reduce((s,m)=>s+m.otherC,0) - r.months.reduce((s,m)=>s+m.otC,0))}₺</td></tr>
         ${r.annual.bufCost>0?`<tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--amber)">⚡ Buffer Agents</td><td style="text-align:right;font-weight:600;color:var(--amber)">${fmtK(r.annual.bufCost)}₺</td></tr>`:''}
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--text2)">Management</td><td style="text-align:right;font-weight:600">${fmtK(r.months.reduce((s,m)=>s+m.mgC,0))}₺</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--text2)">Food, Transport & IT</td><td style="text-align:right;font-weight:600">${fmtK(r.months.reduce((s,m)=>s+m.otherC,0))}₺</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--text2)">Überstunden</td><td style="text-align:right;font-weight:600">${fmtK(r.months.reduce((s,m)=>s+m.otC,0))}₺</td></tr>
-        <tr style="font-weight:700;font-size:14px"><td style="padding:8px 0">Gesamtkosten</td><td style="text-align:right;color:var(--red)">${fmtK(aC)}₺</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--text2)">Overtime</td><td style="text-align:right;font-weight:600">${fmtK(r.months.reduce((s,m)=>s+m.otC,0))}₺</td></tr>
+        ${proj.costs.sales>0?`<tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--purple)">💼 Sales Cost</td><td style="text-align:right;font-weight:600;color:var(--purple)">${fmtK((proj.costs.sales||0)*12)}₺</td></tr>`:''}
+        <tr style="font-weight:700;font-size:14px"><td style="padding:8px 0">Total Costs</td><td style="text-align:right;color:var(--red)">${fmtK(aC)}₺</td></tr>
         <tr style="font-weight:700;font-size:15px"><td style="padding:8px 0;color:var(--green)">Gross Margin</td><td style="text-align:right;color:${aG>=0?'var(--green)':'var(--red)'}">
           ${fmtK(aG)}₺ <span style="font-size:12px;font-weight:400">(${fmtPct(r.annual.gmPct)})</span>
         </td></tr>
       </table>
     </div>
     <div class="card">
-      <div class="ct">Gemeinkosten pro Person/Monat</div>
-      <div class="cs">Wird auf alle Köpfe (inkl. Mgmt) verteilt</div>
+      <div class="ct">Overhead per Person/Month</div>
+      <div class="cs">Wird auf alle Köpfe (incl. Mgmt) verteilt</div>
       <div class="g2" style="gap:10px">
         <div class="ff"><label>Food (TRY)</label><input type="number" class="ci" style="width:80px" value="${proj.costs.food||88}" onchange="PROJECTS['${pn}'].costs.food=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
         <div class="ff"><label>Transport (TRY)</label><input type="number" class="ci" style="width:80px" value="${proj.costs.transport||745}" onchange="PROJECTS['${pn}'].costs.transport=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
         <div class="ff"><label>IT (TRY)</label><input type="number" class="ci" style="width:80px" value="${proj.costs.it||500}" onchange="PROJECTS['${pn}'].costs.it=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
-        <div class="ff"><label>Sonstige (TRY)</label><input type="number" class="ci" style="width:80px" value="${proj.costs.other||300}" onchange="PROJECTS['${pn}'].costs.other=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
+        <div class="ff"><label>Other (TRY)</label><input type="number" class="ci" style="width:80px" value="${proj.costs.other||300}" onchange="PROJECTS['${pn}'].costs.other=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
+        <div class="ff"><label>Sales Cost (TRY/mo flat)</label><input type="number" class="ci" style="width:80px;color:var(--purple)" value="${proj.costs.sales||0}" onchange="PROJECTS['${pn}'].costs.sales=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
       </div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
-        <div class="ct" style="margin-bottom:8px">Ist-Zahlen eintragen (Varianzanalyse)</div>
+        <div class="ct" style="margin-bottom:8px">Enter Actuals (Variance Analysis)</div>
         <div style="overflow-x:auto"><table class="bt" style="min-width:700px"><thead><tr>
-          <th style="text-align:left">Monat</th>${MONTHS.map((_,mi)=>`<th>${MONTHS[mi]}</th>`).join('')}
+          <th style="text-align:left">Month</th>${MONTHS.map((_,mi)=>`<th>${MONTHS[mi]}</th>`).join('')}
         </tr></thead><tbody>
           <tr class="revr"><td>Actual Rev (TRY)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:60px" type="number" value="${(actR[mi]?.rev)||''}" placeholder="—" onchange="setActual('${pn}',${mi},'rev',this.value)"></td>`).join('')}</tr>
           <tr><td>Actual Cost (TRY)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--red);width:60px" type="number" value="${(actR[mi]?.cost)||''}" placeholder="—" onchange="setActual('${pn}',${mi},'cost',this.value)"></td>`).join('')}</tr>
@@ -1511,17 +1553,17 @@ function buildProjPage(pn){
   <!-- ── Section 4: Monthly P&L (collapsed) ── -->
   <details>
     <summary style="cursor:pointer;padding:10px 14px;background:var(--surface3);border-radius:var(--r2);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text)">
-      📅 Monatliches P&L aufklappen (${ACTIVE_YEAR})
+      📅 Monthly P&L (expand) (${ACTIVE_YEAR})
     </summary>
     <div class="tw" style="margin-top:8px"><table class="bt" style="min-width:1000px"><thead><tr>
-      <th style="text-align:left">Zeile</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Gesamt</th>
+      <th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Total</th>
     </tr></thead><tbody>
       <tr class="revr"><td>Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
       <tr><td style="padding-left:10px">Agent-Gehälter</td>${r.months.map(m=>`<td class="mn">${fmtK(m.agSal)}₺</td>`).join('')}<td class="mn" style="font-weight:700">${fmtK(r.annual.cost-r.annual.bufCost-r.months.reduce((s,m)=>s+m.mgC,0)-r.months.reduce((s,m)=>s+m.otherC,0)-r.months.reduce((s,m)=>s+m.otC,0))}₺</td></tr>
       ${r.annual.bufCost>0?`<tr style="background:rgba(245,158,11,.04)"><td style="padding-left:10px;color:var(--amber)">⚡ Buffer</td>${r.months.map(m=>`<td class="mn" style="color:var(--amber)">${fmtK(m.bufSal)}₺</td>`).join('')}<td class="mn" style="color:var(--amber)">${fmtK(r.annual.bufCost)}₺</td></tr>`:''}
       <tr><td style="padding-left:10px">Management</td>${r.months.map(m=>`<td class="mn">${fmtK(m.mgC)}₺</td>`).join('')}<td class="mn" style="font-weight:700">${fmtK(r.months.reduce((s,m)=>s+m.mgC,0))}₺</td></tr>
       <tr><td style="padding-left:10px">Food/Transport/IT</td>${r.months.map(m=>`<td class="mn">${fmtK(m.otherC)}₺</td>`).join('')}<td class="mn" style="font-weight:700">${fmtK(r.months.reduce((s,m)=>s+m.otherC,0))}₺</td></tr>
-      <tr class="subt"><td>Gesamtkosten</td>${r.months.map(m=>`<td class="mn">${fmtK(m.totalCost)}₺</td>`).join('')}<td class="mn">${fmtK(aC)}₺</td></tr>
+      <tr class="subt"><td>Total Costs</td>${r.months.map(m=>`<td class="mn">${fmtK(m.totalCost)}₺</td>`).join('')}<td class="mn">${fmtK(aC)}₺</td></tr>
       <tr class="gmr"><td style="font-weight:700">Gross Margin</td>${r.months.map(m=>`<td class="mn ${vc(m.gm)}" style="font-weight:700">${fmtK(m.gm)}₺</td>`).join('')}<td class="mn ${vc(aG)}" style="font-weight:700">${fmtK(aG)}₺</td></tr>
       <tr class="gmr"><td>GM %</td>${r.months.map(m=>`<td class="mn ${vc(m.gm)}">${fmtPct(m.gmPct)}</td>`).join('')}<td class="mn ${vc(aG)}" style="font-weight:700">${fmtPct(r.annual.gmPct)}</td></tr>
     </tbody></table></div>
@@ -2044,7 +2086,7 @@ function saveProject(){
   } else {
     PROJECTS[name]={id:'p'+Date.now(),color,meta,invoiceModel,
       agents:[],mgmt:[{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],
-      costs:{food:88.05,transport:745,it:500,other:300},
+      costs:{food:88.05,transport:745,it:500,other:300,sales:0},
       rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),
       unitPriceEUR:Array(12).fill(0),
       unitsPerDay:Array(12).fill(0),
@@ -2280,7 +2322,7 @@ function exportPDF(){
 }
 
 // ══════════════════ NAVIGATION ══════════════════
-const PT={dashboard:['Dashboard',ACTIVE_YEAR+' Budget — All Projects'],executive:['Executive Summary','Print-ready management overview'],scenarios:['Scenario Planning','What-if analysis'],variance:['Variance Analysis','Budget vs Actual'],costs:['Cost Breakdown','By project, language and category'],monthly:['Monthly View','Revenue & Costs per month'],headcount:['Headcount Plan','FTE across projects and languages'],kpi:['KPI Tracker','Performance vs targets'],risks:['Risk Register','Auto-generated and manual risks'],audit:['Audit Log','Change history and notes'],assumptions:['Assumptions','Model inputs and FX schedule'],users:['User Management','Team accounts and roles'],multiyear:['Multi-Year Analysis','Jahr-zu-Jahr Vergleich und Trends'],quickentry:['Quick Entry','All key data in one view'],capacity:['Capacity Planning','Shrinkage, Occupancy, Erlang-C'],contracts:['Client Contracts','SLA-Klauseln und Penalty/Bonus']};
+const PT={dashboard:['Dashboard',ACTIVE_YEAR+' Budget — All Projects'],executive:['Executive Summary','Print-ready management overview'],scenarios:['Scenario Planning','What-if analysis'],variance:['Variance Analysis','Budget vs Actual'],costs:['Cost Breakdown','By project, language and category'],monthly:['Monthly View','Revenue & Costs per month'],headcount:['Headcount Plan','FTE across projects and languages'],kpi:['KPI Tracker','Performance vs targets'],risks:['Risk Register','Auto-generated and manual risks'],audit:['Audit Log','Change history and notes'],assumptions:['Assumptions','Model inputs and FX schedule'],users:['User Management','Team accounts and roles'],multiyear:['Multi-Year Analysis','Year-on-year comparison and trends'],quickentry:['Quick Entry','All key data in one view'],capacity:['Capacity Planning','Shrinkage, Occupancy, Erlang-C'],contracts:['Client Contracts','SLA clauses and Penalty/Bonus']};
 
 function SP(name){
   // Role-based access guard
@@ -2289,14 +2331,14 @@ function SP(name){
   const isMgr=isSrMgr||role==='Manager';
   const isTL=role==='Team Leader';
   const tlBlocked=['executive','scenarios','variance','costs','monthly','headcount','kpi','risks','audit','assumptions','users'];
-  if(isTL && tlBlocked.includes(name)){showToast('Kein Zugriff für Team Leader','err');return;}
+  if(isTL && tlBlocked.includes(name)){showToast('No access for Team Leaders','err');return;}
   if(!isSrMgr && name==='assumptions'){showToast('Nur Sr. Manager','err');return;}
   if(!isSrMgr && name==='users'){showToast('Nur Sr. Manager','err');return;}
   // TL can only see their assigned project
   if(isTL && name.startsWith('proj-')){
     const projId=name.replace('proj-','');
     const assignedId=ME.assignedProject?PROJECTS[ME.assignedProject]?.id:null;
-    if(assignedId && projId!==assignedId){showToast('Nur dein Projekt sichtbar','err');return;}
+    if(assignedId && projId!==assignedId){showToast('Only your project is visible','err');return;}
   }
 
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2425,7 +2467,7 @@ async function createUser(){
 
   if(!signupRes.ok){
     st.style.color='var(--red)';
-    st.textContent='✗ '+( signupData.error_description||signupData.msg||signupData.message||'Fehler beim Erstellen');
+    st.textContent='✗ '+( signupData.error_description||signupData.msg||signupData.message||'Error creating account');
     return;
   }
 
@@ -2462,34 +2504,36 @@ async function saveEditUser(){
   const proj = document.getElementById('eu-proj').value;
   const pw   = document.getElementById('eu-pw').value;
   const st   = document.getElementById('eu-status');
-  st.style.color='var(--text2)'; st.textContent='⏳ Speichern…';
+  st.style.color='var(--text2)'; st.textContent='⏳ Saving…';
+  if(!name){st.style.color='var(--red)';st.textContent='Name required.';return;}
+  if(pw && pw.length<8){st.style.color='var(--red)';st.textContent='Password must be 8+ characters.';return;}
   const{error}=await sbPatch('bpo_users','id=eq.'+uid,{name,role,assigned_project:proj||null});
-  if(error){st.style.color='var(--red)';st.textContent='✗ '+error.message;return;}
-  addLog('User Edit',name+' → '+role,'info');autoSave();
-  st.style.color='var(--green)';st.textContent='✓ Gespeichert!';
+  if(error){st.style.color='var(--red)';st.textContent='Error: '+error.message;return;}
+  addLog('User Edit',name+' → '+role,'info'); autoSave();
+  st.style.color='var(--green)'; st.textContent='✓ Saved!';
   setTimeout(()=>{M('m-edit-user');renderUsers();},1200);
 }
 
 async function changeUserRole(uid,role){
   if(!SB_MODE)return;
   const{error}=await sbPatch('bpo_users','id=eq.'+uid,{role});
-  if(error)showToast('Fehler: '+error.message,'err');
-  else{addLog('Role Change',uid.substring(0,8)+' → '+role,'info');autoSave();showToast('Rolle aktualisiert ✓','ok');}
+  if(error)showToast('Error: '+error.message,'err');
+  else{addLog('Role Change',uid.substring(0,8)+' → '+role,'info');autoSave();showToast('Role updated ✓','ok');}
 }
 
 async function removeUser(uid,name){
-  if(!confirm(`${name} entfernen? Der Benutzer verliert sofort den Zugang.`))return;
+  if(!confirm(`${name} remove? The user will immediately lose access.`))return;
   if(!SB_MODE)return;
   const{error}=await sbDel('bpo_users','id=eq.'+uid);
-  if(error){showToast('Fehler: '+error.message,'err');return;}
-  addLog('User Remove',name,'warn');autoSave();showToast(name+' entfernt ✓','ok');renderUsers();
+  if(error){showToast('Error: '+error.message,'err');return;}
+  addLog('User Remove',name,'warn');autoSave();showToast(name+' removed ✓','ok');renderUsers();
 }
 
 async function sendReset(){
   const em=document.getElementById('reset-em').value.trim();
   if(!em||!SB_MODE)return;
   const{error}=await sbResetPw(em);
-  if(error)showToast('Fehler: '+error.message,'err');
+  if(error)showToast('Error: '+error.message,'err');
   else{showToast('Reset-E-Mail gesendet ✓','ok');addLog('Password Reset',em,'info');}
 }
 
@@ -2576,7 +2620,7 @@ function initOperationalData() {
 function renderQuickEntry() {
   initOperationalData();
   if(!PROJECTS||Object.keys(PROJECTS).length===0){
-    document.getElementById('qe-content').innerHTML='<div class="alert alert-info">Keine Projekte vorhanden. Bitte erst ein Projekt anlegen.</div>';
+    document.getElementById('qe-content').innerHTML='<div class="alert alert-info">No projects found. Please create a project first.</div>';
     return;
   }
   const all = calcAll();
@@ -2667,11 +2711,11 @@ function renderQuickEntry() {
   const totGM=totRev-totCost;
 
   html = `<div class="sbar" style="margin-bottom:16px">
-    <div class="sbi"><div class="l">Jahr</div><div class="v g">${ACTIVE_YEAR}</div></div>
+    <div class="sbi"><div class="l">Year</div><div class="v g">${ACTIVE_YEAR}</div></div>
     <div class="sbsep"></div>
     <div class="sbi"><div class="l">Revenue</div><div class="v g">${fmtK(totRev)} ₺</div></div>
     <div class="sbsep"></div>
-    <div class="sbi"><div class="l">Kosten</div><div class="v">${fmtK(totCost)} ₺</div></div>
+    <div class="sbi"><div class="l">Costs</div><div class="v">${fmtK(totCost)} ₺</div></div>
     <div class="sbsep"></div>
     <div class="sbi"><div class="l">GM</div><div class="v ${vc(totGM)==='pos'?'gn':'rd'}">${fmtK(totGM)} ₺ (${fmtPct(totRev>0?totGM/totRev:0)})</div></div>
   </div>` + html;
@@ -2740,7 +2784,7 @@ function renderCapacity() {
         </div>
       </div>
       <div class="tw"><table class="bt" style="min-width:900px">
-        <thead><tr><th style="text-align:left">Monat</th><th>Arbeitstage</th><th>Calls/Tag</th><th>AHT (s)</th><th>Req. Agenten</th><th>Actual FTE</th><th>Differenz</th></tr></thead>
+        <thead><tr><th style="text-align:left">Month</th><th>Arbeitstage</th><th>Calls/Tag</th><th>AHT (s)</th><th>Req. Agenten</th><th>Actual FTE</th><th>Differenz</th></tr></thead>
         <tbody>
           ${rows.map(row=>`<tr>
             <td>${row.mon}</td>
@@ -2827,10 +2871,67 @@ function renderContracts() {
 function saveContracts() { autoSave(); showToast('Verträge gespeichert ✓','ok'); }
 
 // ══════════════════ IMPROVED USER MANAGEMENT ══════════════════
+
+// ══════════════════ MY PROFILE ══════════════════
+function openMyProfile(){
+  document.getElementById('mp-name').value = ME?.name || '';
+  document.getElementById('mp-email').value = ME?.email || '';
+  document.getElementById('mp-role').value = ME?.role || '';
+  document.getElementById('mp-pw').value = '';
+  document.getElementById('mp-pw2').value = '';
+  document.getElementById('mp-status').textContent = '';
+  M('m-edit-user'); // close edit if open
+  O('m-my-profile');
+}
+
+async function saveMyProfile(){
+  const name = document.getElementById('mp-name').value.trim();
+  const pw   = document.getElementById('mp-pw').value;
+  const pw2  = document.getElementById('mp-pw2').value;
+  const st   = document.getElementById('mp-status');
+  st.style.color = 'var(--text2)';
+
+  if(!name){ st.style.color='var(--red)'; st.textContent='Name is required.'; return; }
+  if(pw && pw !== pw2){ st.style.color='var(--red)'; st.textContent='Passwords do not match.'; return; }
+  if(pw && pw.length < 8){ st.style.color='var(--red)'; st.textContent='Password must be at least 8 characters.'; return; }
+
+  st.textContent = '⏳ Saving…';
+
+  // Update display name in bpo_users
+  if(ME?.id && SB_MODE){
+    const{error} = await sbPatch('bpo_users','id=eq.'+ME.id,{name});
+    if(error){ st.style.color='var(--red)'; st.textContent='Error: '+error.message; return; }
+    ME.name = name;
+    document.getElementById('u-nm').textContent = name;
+    document.getElementById('u-av').textContent = name[0].toUpperCase();
+    addLog('Profile Update','Name updated: '+name,'info');
+  }
+
+  // Change password via Supabase Auth API
+  if(pw && SB_MODE && SB_TOKEN){
+    const res = await fetch(SB_URL+'/auth/v1/user',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN},
+      body: JSON.stringify({password:pw})
+    });
+    const d = await res.json();
+    if(!res.ok){
+      st.style.color='var(--red)';
+      st.textContent = 'Name saved. Password error: '+(d.message||d.error_description||'Unknown error');
+      return;
+    }
+    addLog('Password Change','Password updated for '+ME.email,'warn');
+  }
+
+  autoSave();
+  st.style.color = 'var(--green)';
+  st.textContent = pw ? '✓ Name and password updated!' : '✓ Profile updated!';
+  setTimeout(()=>{ M('m-my-profile'); renderUsers(); }, 1500);
+}
 async function renderUsers(){
   const el=document.getElementById('users-content');
   if(!SB_MODE){el.innerHTML=`<div class="alert alert-warn">Supabase nicht verbunden.</div>`;return;}
-  el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:16px">Lade Benutzer…</div>';
+  el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:16px">Loading users…</div>';
   try{
     const{data:users,error}=await sbREST('GET','/rest/v1/bpo_users?select=*&order=created_at.asc');
     if(error)throw new Error(error.message);
@@ -2840,7 +2941,7 @@ async function renderUsers(){
     el.innerHTML=`
     <div class="card">
       <div class="ct">Team Accounts (${users.length})</div>
-      <div class="cs">Klick auf ✏ Edit zum Bearbeiten — Passwort-Reset direkt aus der App</div>
+      <div class="cs">Click ✏ Edit to change role/name · 👤 My Profile to change own password</div>
       <div class="tw"><table class="bt"><thead><tr>
         <th style="text-align:left">Name / ID</th>
         <th style="text-align:left">Rolle</th>
@@ -2862,7 +2963,9 @@ async function renderUsers(){
           <td style="font-size:11px;color:var(--text2)">${new Date(u.created_at).toLocaleDateString('de-DE')}</td>
           <td style="text-align:center">
             ${u.id===ME?.id
-              ?`<span style="font-size:11px;color:var(--green);font-weight:600">● Du</span>`
+              ?`<div style="display:flex;gap:4px;justify-content:center">
+                  <button class="btn btn-xs btn-ghost" onclick="openMyProfile()">👤 My Profile</button>
+                </div>`
               :`<div style="display:flex;gap:4px;justify-content:center">
                 <button class="btn btn-xs btn-ghost" onclick="openEditUser('${u.id}','${(u.name||'').replace(/'/g,"\\'")}','${u.role}','${u.assigned_project||''}')">✏ Edit</button>
                 <button class="btn btn-xs btn-outline" onclick="sendResetForUser('${u.id}')">🔑 Reset</button>
@@ -2874,23 +2977,23 @@ async function renderUsers(){
       </tbody></table></div>
     </div>
     <div class="card" style="margin-top:14px">
-      <div class="ct">Passwort Reset</div>
-      <div class="cs">Reset-Link per E-Mail senden</div>
+      <div class="ct">Password Reset</div>
+      <div class="cs">Send a password reset link via email</div>
       <div style="display:flex;gap:8px;align-items:flex-end">
         <div class="ff" style="flex:1"><label>E-Mail</label>
-          <input id="reset-em" type="email" placeholder="benutzer@firma.com" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--ibg);color:var(--text);font-size:13px;outline:none">
+          <input id="reset-em" type="email" placeholder="user@company.com" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--ibg);color:var(--text);font-size:13px;outline:none">
         </div>
-        <button class="btn btn-outline btn-sm" onclick="sendReset()" style="margin-bottom:1px">Reset senden</button>
+        <button class="btn btn-outline btn-sm" onclick="sendReset()" style="margin-bottom:1px">Send Reset</button>
       </div>
     </div>`;
   }catch(e){
-    el.innerHTML=`<div class="alert alert-danger">Fehler: ${e.message}</div>`;
+    el.innerHTML=`<div class="alert alert-danger">Error: ${e.message}</div>`;
   }
 }
 
 async function sendResetForUser(uid) {
   // Look up email from auth.users — not available via anon key, guide user
-  showToast('Bitte E-Mail unten eingeben und Reset senden','ok');
+  showToast('Bitte E-Mail unten eingeben und Send Reset','ok');
 }
 
 // ══════════════════ MULTI-YEAR ══════════════════
@@ -2958,7 +3061,7 @@ function renderMultiYear(){
   // Per-project multi-year
   const projNames = [...new Set(years.flatMap(yr=>Object.keys(YEAR_DATA[yr]?.PROJECTS||{})))];
   if(projNames.length>0){
-    html += `<div class="card"><div class="ct">Projekt-Vergleich</div><div class="cs">Revenue pro Projekt und Jahr</div>
+    html += `<div class="card"><div class="ct">Projekt-Vergleich</div><div class="cs">Revenue pro Projekt und Year</div>
     <div class="tw"><table class="bt"><thead><tr>
       <th style="text-align:left">Projekt</th>
       ${years.map(yr=>`<th colspan="2">${yr}</th>`).join('')}
