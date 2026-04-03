@@ -658,13 +658,13 @@ create trigger on_auth_user_created
 
     <!-- ═══ CAPACITY PLANNING ═══ -->
     <div class="page" id="page-capacity">
-      <div class="shead"><div><div class="stitle">Capacity Planning</div><div class="ssub">Shrinkage, Occupancy und Erlang-C Kalkulation</div></div></div>
+      <div class="shead"><div><div class="stitle">Capacity Planning</div><div class="ssub">Shrinkage, Occupancy & Erlang-C Calculation</div></div></div>
       <div id="capacity-content"></div>
     </div>
 
     <!-- ═══ CLIENT CONTRACTS ═══ -->
     <div class="page" id="page-contracts">
-      <div class="shead"><div><div class="stitle">Client Contracts</div><div class="ssub">SLA-Klauseln, Penalty und Bonus-Regelungen</div></div>
+      <div class="shead"><div><div class="stitle">Client Contracts</div><div class="ssub">SLA clauses, Penalty & Bonus rules</div></div>
         <button class="btn btn-gold btn-sm" onclick="saveContracts()">💾 Save</button>
       </div>
       <div id="contracts-content"></div>
@@ -911,7 +911,7 @@ async function sbSave(){
   },updated_at:new Date().toISOString()};
   const{error}=await sbUpsert('bpo_state',payload);
   if(error)console.warn('Save failed:',error.message);
-  else{ showToast('☁ Gespeichert','ok'); }
+  else{ showToast('☁ Saved','ok'); }
 }
 async function sbLoad(){
   if(!SB_MODE)return false;
@@ -1055,10 +1055,10 @@ let CAP_DATA={};
 let CONTRACT_DATA={};
 
 let PROJECTS={
-  'SALT Care':{id:'p0',color:'#4a6cf7',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH & WFO',invoicing:'Production Hours'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(9),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(1),salary:47250,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:Array(12).fill(5),salary:42250,bonus:0.07,isBuffer:false},{name:'Buffer DE',lang:'DE',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true},{name:'Buffer FR',lang:'FR',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'TL French',hc:1,salary:55000,bonus:0.07},{name:'Quality',hc:1,salary:60000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'Production Hours',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
-  'SALT RET':{id:'p1',color:'#8b5cf6',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(12),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(3),salary:47250,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT Care':{id:'p0',color:'#4a6cf7',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH & WFO',invoicing:'Production Hours'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(9),salary:42250,bonus:0.07,isBuffer:false,rateEUR:null,unitPriceEUR:null,unitsPerDay:null,ftePriceEUR:null},{name:'Swiss',lang:'CH',hc:Array(12).fill(1),salary:47250,bonus:0.07,isBuffer:false,rateEUR:null,unitPriceEUR:null,unitsPerDay:null,ftePriceEUR:null},{name:'French',lang:'FR',hc:Array(12).fill(5),salary:42250,bonus:0.07,isBuffer:false,rateEUR:null,unitPriceEUR:null,unitsPerDay:null,ftePriceEUR:null},{name:'Buffer DE',lang:'DE',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true,rateEUR:null,unitPriceEUR:null,unitsPerDay:null,ftePriceEUR:null},{name:'Buffer FR',lang:'FR',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true,rateEUR:null,unitPriceEUR:null,unitsPerDay:null,ftePriceEUR:null}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'TL French',hc:1,salary:55000,bonus:0.07},{name:'Quality',hc:1,salary:60000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'Production Hours',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT RET':{id:'p1',color:'#8b5cf6',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(12),salary:42250,bonus:0.07,isBuffer:false,rateEUR:null,unitPriceEUR:null,unitsPerDay:null,ftePriceEUR:null},{name:'Swiss',lang:'CH',hc:Array(12).fill(3),salary:47250,bonus:0.07,isBuffer:false,rateEUR:null,unitPriceEUR:null,unitsPerDay:null,ftePriceEUR:null}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
   'SALT TLS':{id:'p2',color:'#00c896',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'ICM'},agents:[{name:'Swiss',lang:'CH',hc:[10,9,8,8,8,8,8,10,10,10,10,10],salary:45000,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:[6,6,6,6,6,6,6,5,5,5,5,5],salary:38400,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'ICM',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
-  'SALT OB':{id:'p3',color:'#f0a500',meta:{client:'SALT OB',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'ACQ',lang:'—',hc:Array(12).fill(12),salary:45000,bonus:0.07,isBuffer:false},{name:'Fiber',lang:'—',hc:[3,3,3,3,3,3,3,4,4,4,4,4],salary:45000,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT OB':{id:'p3',color:'#f0a500',meta:{client:'SALT OB',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'ACQ',lang:'—',hc:Array(12).fill(12),salary:45000,bonus:0.07,isBuffer:false,rateEUR:null,unitPriceEUR:null,unitsPerDay:null,ftePriceEUR:null},{name:'Fiber',lang:'—',hc:[3,3,3,3,3,3,3,4,4,4,4,4],salary:45000,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300,sales:0},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
 };
 
 // ══════════════════ CALC ══════════════════
@@ -1067,47 +1067,64 @@ let PROJECTS={
 // FTE:             Revenue = ftePriceEUR/FTE/month × billing FTE
 // ICM:             Revenue = baseEUR + bonusPct × (actualUnits/targetUnits - 1) × baseEUR  (incentive/commission)
 
-function calcRevEUR(proj, m, billingAg, ov2) {
+// ── Per-agent rate helpers ──
+// Agent-level rates take priority over project-level rates
+// null = inherit project default
+function agentRate(ag, proj, field, defaultVal, m) {
+  const agVal = ag[field];
+  if (agVal !== null && agVal !== undefined) return agVal;
+  const projArr = proj[field];
+  if (Array.isArray(projArr)) return projArr[m] ?? defaultVal;
+  return defaultVal;
+}
+
+function calcRevEUR(proj, m, billingAg, ov2, agentsArr) {
   const model = proj.invoiceModel || 'Production Hours';
   const pd = PROD_DAYS[m];
   const boost = 1 + (ov2.revBoost || 0);
+  const agents = agentsArr || proj.agents.filter(ag => !ag.isBuffer);
 
   if (model === 'FTE') {
-    // Fixed monthly price per active FTE
-    const price = (proj.ftePriceEUR?.[m] ?? 3200);
-    return price * billingAg * boost;
+    // Per-agent FTE price — sum each billing agent group
+    let rev = 0;
+    for (const ag of agents) {
+      const hc = Math.round((ag.hc[m] || 0) * (1 - (ov2.hcCut || 0)));
+      if (!hc) continue;
+      const price = agentRate(ag, proj, 'ftePriceEUR', 3200, m);
+      rev += price * hc;
+    }
+    return rev * boost;
   }
+
   if (model === 'ICM') {
-    // Incentive/Commission model
-    // Option A: base + % bonus on overperformance
-    // Option B: unitPrice × actual units achieved
+    // ICM stays project-level (commission target is per-contract not per-language)
     const cfg = proj.icmConfig || {};
     const base      = cfg.baseEUR?.[m]      ?? 0;
     const bonusPct  = cfg.bonusPct?.[m]     ?? 0.15;
     const target    = cfg.targetUnits?.[m]  ?? 1000;
     const actual    = cfg.actualUnits?.[m]  ?? 0;
-    const unitPrice = cfg.unitPriceEUR?.[m] ?? 0; // EUR per unit achieved
-    // If unitPrice set: revenue = unitPrice × actual units (+ base if any)
-    if (unitPrice > 0) {
-      return (base + unitPrice * actual) * boost;
-    }
-    // Otherwise: base + overperformance bonus
+    const unitPrice = cfg.unitPriceEUR?.[m] ?? 0;
+    if (unitPrice > 0) return (base + unitPrice * actual) * boost;
     const achieved = target > 0 ? actual / target : 0;
     const bonus = achieved > 1 ? (achieved - 1) * bonusPct * base : 0;
     return (base + bonus) * boost;
   }
-  // Default: Production Hours
-  // Option A: rateEUR per hour × hours × FTE
-  // Option B: unitPriceEUR per transaction × estimated transactions
-  const rate = proj.rateEUR?.[m] ?? 135;
-  const unitPrice = proj.unitPriceEUR?.[m] ?? 0;
-  const unitsPerDay = proj.unitsPerDay?.[m] ?? 0;
-  if (unitPrice > 0 && unitsPerDay > 0) {
-    // Unit-based: price per transaction × units/day × prod days × FTE
-    return unitPrice * unitsPerDay * pd * billingAg * boost;
+
+  // Production Hours — per-agent rate and unit price
+  let rev = 0;
+  for (const ag of agents) {
+    const hc = Math.round((ag.hc[m] || 0) * (1 - (ov2.hcCut || 0)));
+    if (!hc) continue;
+    const rate       = agentRate(ag, proj, 'rateEUR', 135, m);
+    const unitPrice  = agentRate(ag, proj, 'unitPriceEUR', 0, m);
+    const unitsPerDay= agentRate(ag, proj, 'unitsPerDay', 0, m);
+    if (unitPrice > 0 && unitsPerDay > 0) {
+      rev += unitPrice * unitsPerDay * pd * hc;
+    } else {
+      rev += rate * pd * 8 * hc;
+    }
   }
-  // Standard: rate × hours × FTE
-  return rate * pd * 8 * billingAg * boost;
+  return rev * boost;
 }
 
 function calcProject(proj, ov) {
@@ -1145,14 +1162,31 @@ function calcProject(proj, ov) {
       mgC += mg.hc * (Math.max(mg.salary, mw) * (1 + ASM.socialPct) * (1 + (mg.bonus || ASM.mgmtBonus))) * (1 + (ov2.costBoost || 0));
 
     const totalHC = totalAg + proj.mgmt.reduce((s, mg) => s + mg.hc, 0);
-    const otherC  = (totalHC * ((proj.costs.food||0) + (proj.costs.transport||0) + (proj.costs.it||0) + (proj.costs.other||0)) + (proj.costs.sales||0)) * (1 + (ov2.costBoost||0));
+    // Per-agent overhead: each agent group can override food/transport/IT/other
+    let agOverhead = 0;
+    for (const ag of proj.agents) {
+      const hc = Math.round((ag.hc[m] || 0) * (1 - (ov2.hcCut || 0)));
+      if (!hc) continue;
+      const food      = ag.costs?.food      ?? proj.costs.food      ?? 0;
+      const transport = ag.costs?.transport ?? proj.costs.transport ?? 0;
+      const it        = ag.costs?.it        ?? proj.costs.it        ?? 0;
+      const other     = ag.costs?.other     ?? proj.costs.other     ?? 0;
+      agOverhead += hc * (food + transport + it + other);
+    }
+    // Mgmt uses project defaults
+    const mgmtHC = proj.mgmt.reduce((s, mg) => s + mg.hc, 0);
+    const mgmtOverhead = mgmtHC * ((proj.costs.food||0) + (proj.costs.transport||0) + (proj.costs.it||0) + (proj.costs.other||0));
+    // Sales cost is in EUR → convert to TRY using current FX
+    const salesTRY = (proj.costs.sales || 0) * fx;
+    const otherC  = (agOverhead + mgmtOverhead + salesTRY) * (1 + (ov2.costBoost||0));
     const avgNet  = billingAg > 0
       ? proj.agents.filter(ag => !ag.isBuffer).reduce((s, ag) => s + Math.max(ag.salary, mw) * (ag.hc[m]||0), 0) / Math.max(billingAg, 1)
       : mw;
     const otC = (proj.overtimeH[m] || 0) * (avgNet / (pd * 8)) * 2;
 
-    // Revenue — model-dependent
-    const revEUR = calcRevEUR(proj, m, billingAg, ov2);
+    // Revenue — per-agent rates summed
+    const billingAgents = proj.agents.filter(ag => !ag.isBuffer);
+    const revEUR = calcRevEUR(proj, m, billingAg, ov2, billingAgents);
     const revTRY = revEUR * fx;
 
     const totalCost = agSal + bufSal + mgC + otherC + otC;
@@ -1314,7 +1348,7 @@ function buildProjPage(pn){
       const useUnits=(proj.unitPriceEUR||[]).some(v=>v>0);
       return `<div class="card">
         <div class="ct">Revenue — Production Hours ${modelBadge}</div>
-        <div class="cs">Set uniform for all months, or expand monthly table below</div>
+        <div class="cs">Set project-level defaults for all months. Override per language group in the Headcount table below.</div>
         <div class="g4" style="margin-bottom:12px">
           <div class="ff"><label>Rate (EUR/hr) — all months</label>
             <input type="number" class="ci" style="width:90px" value="${proj.rateEUR?.[0]??135}" min="0" step="0.5"
@@ -1349,7 +1383,7 @@ function buildProjPage(pn){
     if(model==='FTE'){
       return `<div class="card">
         <div class="ct">Revenue — FTE ${modelBadge}</div>
-        <div class="cs">Fixed price per head per month × Billing FTE</div>
+        <div class="cs">Set project default FTE price. Override per language group in the Headcount table.</div>
         <div class="g4" style="margin-bottom:12px">
           <div class="ff"><label>FTE Price (EUR/head/mo) — all months</label>
             <input type="number" class="ci" style="width:90px" value="${proj.ftePriceEUR?.[0]??3200}" min="0" step="50"
@@ -1463,7 +1497,11 @@ function buildProjPage(pn){
         <th style="text-align:center;padding:6px 8px;color:var(--text2)">Σ</th>
         <th style="text-align:right;padding:6px 8px;color:var(--text2)">Net Salary (TRY)</th>
         <th style="text-align:right;padding:6px 8px;color:var(--text2)">Bonus %</th>
-        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Gross Cost/mo (avg)</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--text2);color:var(--green)">Rate (EUR/hr)</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--teal)">Unit Price (EUR)</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--teal)">Units/Day</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--blue)">FTE Price (EUR)</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--text2)">Gross Cost/mo</th>
         <th></th>
       </tr></thead>
       <tbody>
@@ -1488,8 +1526,36 @@ function buildProjPage(pn){
                 onchange="PROJECTS['${pn}'].agents[${i}].salary=parseFloat(this.value)||0;scheduleRecalc('${pn}')">
             </td>
             <td style="text-align:right;padding:5px 8px">
-              <input type="number" class="ci" style="width:48px;text-align:right" value="${(ag.bonus*100).toFixed(1)}" step="0.1"
+              <input type="number" class="ci" style="width:46px;text-align:right" value="${(ag.bonus*100).toFixed(1)}" step="0.1"
                 onchange="PROJECTS['${pn}'].agents[${i}].bonus=parseFloat(this.value)/100;scheduleRecalc('${pn}')">
+            </td>
+            <td style="text-align:right;padding:5px 4px">
+              <input type="number" class="ci" style="width:56px;text-align:right;color:var(--green)"
+                value="${ag.rateEUR!==null&&ag.rateEUR!==undefined?ag.rateEUR:''}"
+                placeholder="${proj.rateEUR?.[0]??135}"
+                onchange="PROJECTS['${pn}'].agents[${i}].rateEUR=this.value===''?null:parseFloat(this.value)||0;scheduleRecalc('${pn}')"
+                title="Override rate for this language group. Leave blank to use project default.">
+            </td>
+            <td style="text-align:right;padding:5px 4px">
+              ${!ag.isBuffer?`<input type="number" class="ci" style="width:56px;text-align:right;color:var(--teal)"
+                value="${ag.unitPriceEUR!==null&&ag.unitPriceEUR!==undefined?ag.unitPriceEUR:''}"
+                placeholder="${proj.unitPriceEUR?.[0]??0}"
+                onchange="PROJECTS['${pn}'].agents[${i}].unitPriceEUR=this.value===''?null:parseFloat(this.value)||0;scheduleRecalc('${pn}')"
+                title="Unit price per transaction for this language group.">`:'<span style="color:var(--text2);font-size:11px">—</span>'}
+            </td>
+            <td style="text-align:right;padding:5px 4px">
+              ${!ag.isBuffer?`<input type="number" class="ci" style="width:46px;text-align:right;color:var(--teal)"
+                value="${ag.unitsPerDay!==null&&ag.unitsPerDay!==undefined?ag.unitsPerDay:''}"
+                placeholder="${proj.unitsPerDay?.[0]??0}"
+                onchange="PROJECTS['${pn}'].agents[${i}].unitsPerDay=this.value===''?null:parseFloat(this.value)||0;scheduleRecalc('${pn}')"
+                title="Units per agent per day for this language group.">`:'<span style="color:var(--text2);font-size:11px">—</span>'}
+            </td>
+            <td style="text-align:right;padding:5px 4px">
+              ${!ag.isBuffer?`<input type="number" class="ci" style="width:56px;text-align:right;color:var(--blue)"
+                value="${ag.ftePriceEUR!==null&&ag.ftePriceEUR!==undefined?ag.ftePriceEUR:''}"
+                placeholder="${proj.ftePriceEUR?.[0]??3200}"
+                onchange="PROJECTS['${pn}'].agents[${i}].ftePriceEUR=this.value===''?null:parseFloat(this.value)||0;scheduleRecalc('${pn}')"
+                title="FTE price for this language group (FTE model).">`:'<span style="color:var(--text2);font-size:11px">—</span>'}
             </td>
             <td style="text-align:right;padding:5px 8px;font-weight:600;color:var(--text2)">${fmtN(monthlyCost)} ₺</td>
             <td style="padding:5px 4px"><button class="btn btn-xs btn-danger" onclick="removeAgent('${pn}',${i})">✕</button></td>
@@ -1513,6 +1579,45 @@ function buildProjPage(pn){
 
   <!-- ── Section 3: Cost Summary ── -->
   <div class="g2">
+    <!-- Per-language overhead overrides -->
+    <div class="card">
+      <div class="ct">Per-Language Overhead Costs</div>
+      <div class="cs">Override food, transport, IT costs per agent group. Leave blank to use project default shown in brackets.</div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:6px 8px;color:var(--text2)">Group</th>
+          <th style="text-align:right;padding:6px 8px;color:var(--text2)">Food (TRY/head)</th>
+          <th style="text-align:right;padding:6px 8px;color:var(--text2)">Transport (TRY/head)</th>
+          <th style="text-align:right;padding:6px 8px;color:var(--text2)">IT (TRY/head)</th>
+          <th style="text-align:right;padding:6px 8px;color:var(--text2)">Other (TRY/head)</th>
+          <th style="text-align:right;padding:6px 8px;color:var(--text2)">Total/Head</th>
+        </tr></thead>
+        <tbody>
+          ${proj.agents.map((ag,i)=>`<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:5px 8px;font-weight:600">${lBadge(ag.lang)} ${ag.name}</td>
+            ${['food','transport','it','other'].map(f=>`<td style="text-align:right;padding:4px 6px">
+              <input type="number" class="ci" style="width:70px;text-align:right" min="0"
+                value="${ag.costs?.[f]!==undefined?ag.costs[f]:''}"
+                placeholder="${proj.costs[f]||0}"
+                onchange="if(!PROJECTS['${pn}'].agents[${i}].costs)PROJECTS['${pn}'].agents[${i}].costs={};PROJECTS['${pn}'].agents[${i}].costs['${f}']=this.value===''?undefined:parseFloat(this.value)||0;scheduleRecalc('${pn}')">
+            </td>`).join('')}
+            <td style="text-align:right;padding:5px 8px;font-weight:600;color:var(--text2)">
+              ${fmtN((['food','transport','it','other'].reduce((s,f)=>{const v=ag.costs?.[f]!==undefined?ag.costs[f]:proj.costs[f]||0;return s+v;},0)).toFixed(0))} ₺
+            </td>
+          </tr>`).join('')}
+          <tr style="background:var(--surface3);font-size:11px">
+            <td style="padding:5px 8px;color:var(--text2)">Mgmt (uses project default)</td>
+            <td class="mn" style="color:var(--text2)">${proj.costs.food||0}</td>
+            <td class="mn" style="color:var(--text2)">${proj.costs.transport||0}</td>
+            <td class="mn" style="color:var(--text2)">${proj.costs.it||0}</td>
+            <td class="mn" style="color:var(--text2)">${proj.costs.other||0}</td>
+            <td class="mn" style="color:var(--text2)">${fmtN(((proj.costs.food||0)+(proj.costs.transport||0)+(proj.costs.it||0)+(proj.costs.other||0)).toFixed(0))} ₺</td>
+          </tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="g2">
     <div class="card">
       <div class="ct">Cost Summary</div>
       <div class="cs">Calculated annual costs by category</div>
@@ -1522,7 +1627,7 @@ function buildProjPage(pn){
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--text2)">Management</td><td style="text-align:right;font-weight:600">${fmtK(r.months.reduce((s,m)=>s+m.mgC,0))}₺</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--text2)">Food, Transport & IT</td><td style="text-align:right;font-weight:600">${fmtK(r.months.reduce((s,m)=>s+m.otherC,0))}₺</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--text2)">Overtime</td><td style="text-align:right;font-weight:600">${fmtK(r.months.reduce((s,m)=>s+m.otC,0))}₺</td></tr>
-        ${proj.costs.sales>0?`<tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--purple)">💼 Sales Cost</td><td style="text-align:right;font-weight:600;color:var(--purple)">${fmtK((proj.costs.sales||0)*12)}₺</td></tr>`:''}
+        ${proj.costs.sales>0?`<tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--purple)">💼 Sales Cost (${fmtEUR(proj.costs.sales||0)}/mo)</td><td style="text-align:right;font-weight:600;color:var(--purple)">${fmtK((proj.costs.sales||0)*FX.reduce((s,v)=>s+v,0)/12*12)}₺</td></tr>`:''}
         <tr style="font-weight:700;font-size:14px"><td style="padding:8px 0">Total Costs</td><td style="text-align:right;color:var(--red)">${fmtK(aC)}₺</td></tr>
         <tr style="font-weight:700;font-size:15px"><td style="padding:8px 0;color:var(--green)">Gross Margin</td><td style="text-align:right;color:${aG>=0?'var(--green)':'var(--red)'}">
           ${fmtK(aG)}₺ <span style="font-size:12px;font-weight:400">(${fmtPct(r.annual.gmPct)})</span>
@@ -1530,14 +1635,14 @@ function buildProjPage(pn){
       </table>
     </div>
     <div class="card">
-      <div class="ct">Overhead per Person/Month</div>
+      <div class="ct">Project Overhead Defaults</div>
       <div class="cs">Wird auf alle Köpfe (incl. Mgmt) verteilt</div>
       <div class="g2" style="gap:10px">
         <div class="ff"><label>Food (TRY)</label><input type="number" class="ci" style="width:80px" value="${proj.costs.food||88}" onchange="PROJECTS['${pn}'].costs.food=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
         <div class="ff"><label>Transport (TRY)</label><input type="number" class="ci" style="width:80px" value="${proj.costs.transport||745}" onchange="PROJECTS['${pn}'].costs.transport=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
         <div class="ff"><label>IT (TRY)</label><input type="number" class="ci" style="width:80px" value="${proj.costs.it||500}" onchange="PROJECTS['${pn}'].costs.it=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
         <div class="ff"><label>Other (TRY)</label><input type="number" class="ci" style="width:80px" value="${proj.costs.other||300}" onchange="PROJECTS['${pn}'].costs.other=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
-        <div class="ff"><label>Sales Cost (TRY/mo flat)</label><input type="number" class="ci" style="width:80px;color:var(--purple)" value="${proj.costs.sales||0}" onchange="PROJECTS['${pn}'].costs.sales=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
+        <div class="ff"><label>Sales Cost (EUR/mo → TRY)</label><input type="number" class="ci" style="width:80px;color:var(--purple)" value="${proj.costs.sales||0}" onchange="PROJECTS['${pn}'].costs.sales=parseFloat(this.value)||0;scheduleRecalc('${pn}')"></div>
       </div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
         <div class="ct" style="margin-bottom:8px">Enter Actuals (Variance Analysis)</div>
@@ -2107,7 +2212,7 @@ function openAddAgent(pn){curAgPj=pn;document.getElementById('magt').textContent
 function saveAgent(){
   const n=document.getElementById('ag-n').value.trim();if(!n){showToast('Enter name','err');return;}
   const isBuffer=document.getElementById('ag-buf').checked;
-  PROJECTS[curAgPj].agents.push({name:n,lang:document.getElementById('ag-lg').value,hc:Array(12).fill(parseInt(document.getElementById('ag-h').value)||0),salary:parseFloat(document.getElementById('ag-s').value)||42250,bonus:(parseFloat(document.getElementById('ag-b').value)||7)/100,isBuffer});
+  PROJECTS[curAgPj].agents.push({name:n,lang:document.getElementById('ag-lg').value,hc:Array(12).fill(parseInt(document.getElementById('ag-h').value)||0),salary:parseFloat(document.getElementById('ag-s').value)||42250,bonus:(parseFloat(document.getElementById('ag-b').value)||7)/100,isBuffer,rateEUR:null,unitPriceEUR:null,unitsPerDay:null,ftePriceEUR:null});
   M('m-ag');buildProjPage(curAgPj);addLog('Agent Add',n+(isBuffer?' [BUFFER]':'')+' → '+curAgPj,'info');showToast(n+' added'+(isBuffer?' as buffer':'')+' ✓','ok');
 }
 function removeAgent(pn,i){if(!confirm('Remove this agent group?'))return;const n=PROJECTS[pn].agents[i].name;PROJECTS[pn].agents.splice(i,1);buildProjPage(pn);addLog('Agent Remove',n+' from '+pn,'warn');showToast('Removed','ok');}
@@ -2689,7 +2794,7 @@ function renderQuickEntry() {
             <input type="number" class="ci" style="width:60px" value="${con.slaTarget||80}"
               onchange="CONTRACT_DATA['${pn}'].slaTarget=parseFloat(this.value)||80">
           </div>
-          <div class="ff"><label>Penalty if miss %</label>
+          <div class="ff"><label>Penalty if missed %</label>
             <input type="number" class="ci" style="width:55px;color:var(--red)" value="${con.penaltyPct||5}"
               onchange="CONTRACT_DATA['${pn}'].penaltyPct=parseFloat(this.value)||0">
           </div>
@@ -2734,41 +2839,66 @@ function setAllRates(pn, model, val) {
   else PROJECTS[pn].rateEUR = Array(12).fill(val);
   scheduleRecalc(pn);
 }
-function saveQuickEntry() { autoSave(); showToast('Gespeichert ✓','ok'); }
+function saveQuickEntry() { autoSave(); showToast('Saved ✓','ok'); }
 
 // ══════════════════ CAPACITY PLANNING ══════════════════
 function renderCapacity() {
   initOperationalData();
-  let html = `<div class="alert alert-info" style="margin-bottom:16px">📐 Erlang-C Formel: Benötigte Agenten = (Calls × AHT) ÷ (3600 × Occupancy) × (1 ÷ (1 − Shrinkage%)). GDPR-sicher — keine Personendaten.</div>`;
+
+  if(!PROJECTS||Object.keys(PROJECTS).length===0){
+    document.getElementById('capacity-content').innerHTML='<div class="alert alert-info">No projects found.</div>';
+    return;
+  }
+
+  let html = `<div class="alert alert-info" style="margin-bottom:14px">
+    <strong>Formula:</strong> Required Agents = (Calls/Day × AHT) ÷ (Work Hours/Day × 3600 × Occupancy%) ÷ (1 − Shrinkage%).<br>
+    Enter Calls/Day per month below. Shrinkage covers absences, training, breaks. No personal data — GDPR safe.
+  </div>`;
 
   for (const [pn, proj] of Object.entries(PROJECTS)) {
-    const cap = CAP_DATA[pn] || {};
-    const sla = SLA_DATA[pn];
-    // Calculate required headcount per month
-    const pd = PROD_DAYS;
+    if(!CAP_DATA[pn]) CAP_DATA[pn]={shrinkagePct:30,occupancyTarget:85,ahtSec:300,callsPerDay:0,workingHoursDay:8,monthlyCallsPerDay:Array(12).fill(0)};
+    const cap = CAP_DATA[pn];
+    if(!cap.monthlyCallsPerDay) cap.monthlyCallsPerDay=Array(12).fill(cap.callsPerDay||0);
+
+    const aht     = cap.ahtSec || 300;          // seconds per call
+    const occ     = (cap.occupancyTarget||85)/100;
+    const shrink  = (cap.shrinkagePct||30)/100;
+    const hoursDay= cap.workingHoursDay || 8;
+
     const rows = MONTHS.map((mon, mi) => {
-      const calls = sla?.months[mi]?.calls || cap.callsPerDay || 0;
-      const aht = cap.ahtSec || 300;
-      const occ = (cap.occupancyTarget||85)/100;
-      const shrink = (cap.shrinkagePct||30)/100;
-      const hoursDay = cap.workingHoursDay || 8;
-      const totalCallMins = calls * aht / 60;
-      const productiveHours = hoursDay * pd[mi] * occ;
-      const raw = productiveHours > 0 ? totalCallMins / productiveHours : 0;
-      const required = raw > 0 ? Math.ceil(raw / (1 - shrink)) : 0;
-      const actual = proj.agents.filter(ag=>!ag.isBuffer).reduce((s,ag)=>s+(ag.hc[mi]||0),0);
-      const diff = actual - required;
-      return { mon, calls, required, actual, diff };
+      const pd      = PROD_DAYS[mi];
+      const calls   = cap.monthlyCallsPerDay[mi] || cap.callsPerDay || 0;
+      // Required agents = (calls × AHT_seconds) / (workHours × 3600 × occupancy)
+      const raw     = calls > 0 ? (calls * aht) / (hoursDay * 3600 * occ) : 0;
+      const required= raw > 0 ? Math.ceil(raw / (1 - shrink)) : 0;
+      const actual  = proj.agents.filter(ag=>!ag.isBuffer).reduce((s,ag)=>s+(ag.hc[mi]||0),0);
+      const diff    = actual - required;
+      const status  = required===0?'no-data':diff>=0?'ok':'short';
+      return { mon, mi, pd, calls, required, actual, diff, status };
     });
 
+    const totalRequired = rows.reduce((s,r)=>s+(r.required||0),0);
+    const totalActual   = rows.reduce((s,r)=>s+r.actual,0);
+
     html += `<div class="card" style="border-left:4px solid ${proj.color}">
-      <div class="ct" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="width:10px;height:10px;border-radius:50%;background:${proj.color};display:inline-block"></span>
-        ${pn}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div class="ct" style="display:flex;align-items:center;gap:8px;margin:0">
+          <span style="width:10px;height:10px;border-radius:50%;background:${proj.color};display:inline-block"></span>
+          ${pn}
+        </div>
+        <div style="display:flex;gap:12px;font-size:12px">
+          <span>Annual req: <strong>${totalRequired}</strong> agent-months</span>
+          <span>Annual actual: <strong>${totalActual}</strong> agent-months</span>
+          <span style="color:${totalActual>=totalRequired?'var(--green)':'var(--red)'}">
+            ${totalActual>=totalRequired?'✓ Sufficient':'⚠ Understaffed'}
+          </span>
+        </div>
       </div>
-      <div class="g4" style="margin-bottom:14px">
-        <div class="ff"><label>AHT (Sekunden)</label>
-          <input type="number" class="ci" style="width:70px" value="${cap.ahtSec||300}"
+
+      <!-- Settings row -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px;padding:12px;background:var(--surface3);border-radius:var(--r2)">
+        <div class="ff"><label>AHT (seconds)</label>
+          <input type="number" class="ci" style="width:70px" value="${aht}"
             onchange="CAP_DATA['${pn}'].ahtSec=parseInt(this.value)||300;renderCapacity()">
         </div>
         <div class="ff"><label>Shrinkage %</label>
@@ -2779,23 +2909,47 @@ function renderCapacity() {
           <input type="number" class="ci" style="width:60px" value="${cap.occupancyTarget||85}"
             onchange="CAP_DATA['${pn}'].occupancyTarget=parseFloat(this.value)||85;renderCapacity()">
         </div>
-        <div class="ff"><label>Std. Arbeit/Tag</label>
-          <input type="number" class="ci" style="width:55px" value="${cap.workingHoursDay||8}"
+        <div class="ff"><label>Work Hours/Day</label>
+          <input type="number" class="ci" style="width:55px" value="${hoursDay}"
             onchange="CAP_DATA['${pn}'].workingHoursDay=parseFloat(this.value)||8;renderCapacity()">
         </div>
+        <div class="ff"><label>Default Calls/Day</label>
+          <input type="number" class="ci" style="width:70px" value="${cap.callsPerDay||0}"
+            onchange="CAP_DATA['${pn}'].callsPerDay=parseInt(this.value)||0;CAP_DATA['${pn}'].monthlyCallsPerDay=CAP_DATA['${pn}'].monthlyCallsPerDay.map((v,i)=>v||parseInt(this.value)||0);renderCapacity()">
+        </div>
       </div>
+
+      <!-- Monthly calls input + calculation table -->
       <div class="tw"><table class="bt" style="min-width:900px">
-        <thead><tr><th style="text-align:left">Month</th><th>Arbeitstage</th><th>Calls/Tag</th><th>AHT (s)</th><th>Req. Agenten</th><th>Actual FTE</th><th>Differenz</th></tr></thead>
+        <thead><tr>
+          <th style="text-align:left;min-width:70px">Month</th>
+          ${MONTHS.map(m=>`<th>${m}</th>`).join('')}
+        </tr></thead>
         <tbody>
-          ${rows.map(row=>`<tr>
-            <td>${row.mon}</td>
-            <td class="mn">${PROD_DAYS[MONTHS.indexOf(row.mon)]}</td>
-            <td class="mn">${row.calls}</td>
-            <td class="mn">${cap.ahtSec||300}</td>
-            <td class="mn" style="font-weight:600">${row.required||'—'}</td>
-            <td class="mn">${row.actual}</td>
-            <td class="mn" style="font-weight:700;color:${row.diff>=0?'var(--green)':'var(--red)'}">${row.required>0?(row.diff>=0?'+':'')+row.diff:'—'}</td>
-          </tr>`).join('')}
+          <tr>
+            <td style="font-size:11px;color:var(--text2)">Calls/Day</td>
+            ${MONTHS.map((_,mi)=>`<td><input class="ci" style="width:48px;color:var(--blue)" type="number" min="0"
+              value="${cap.monthlyCallsPerDay[mi]||cap.callsPerDay||0}"
+              onchange="CAP_DATA['${pn}'].monthlyCallsPerDay[${mi}]=parseInt(this.value)||0;renderCapacity()"></td>`).join('')}
+          </tr>
+          <tr>
+            <td style="font-size:11px;color:var(--text2)">Working Days</td>
+            ${MONTHS.map((_,mi)=>`<td class="mn" style="color:var(--text2)">${PROD_DAYS[mi]}</td>`).join('')}
+          </tr>
+          <tr>
+            <td style="font-size:11px;font-weight:600">Required Agents</td>
+            ${rows.map(row=>`<td class="mn" style="font-weight:700;color:${row.required>0?'var(--text)':'var(--text2)'}">${row.required||'—'}</td>`).join('')}
+          </tr>
+          <tr>
+            <td style="font-size:11px;font-weight:600">Actual Billing FTE</td>
+            ${rows.map(row=>`<td class="mn" style="font-weight:600">${row.actual}</td>`).join('')}
+          </tr>
+          <tr>
+            <td style="font-size:11px;font-weight:600">Difference</td>
+            ${rows.map(row=>`<td class="mn" style="font-weight:700;color:${
+              row.status==='no-data'?'var(--text2)':row.status==='ok'?'var(--green)':'var(--red)'
+            }">${row.status==='no-data'?'—':(row.diff>=0?'+':'')+row.diff}</td>`).join('')}
+          </tr>
         </tbody>
       </table></div>
     </div>`;
@@ -2825,7 +2979,7 @@ function renderContracts() {
             ${['FCR %','CSAT %','Attendance %','AHT (max)','Occupancy %'].map(m=>`<option ${m===con.slaMetric?'selected':''}>${m}</option>`).join('')}
           </select>
         </div>
-        <div class="ff"><label>Penalty bei Miss %</label>
+        <div class="ff"><label>Penalty if missed %</label>
           <input type="number" class="ci" style="width:60px;color:var(--red)" value="${con.penaltyPct||5}"
             onchange="CONTRACT_DATA['${pn}'].penaltyPct=parseFloat(this.value)||0">
         </div>
@@ -2845,7 +2999,7 @@ function renderContracts() {
             ${['EUR','USD','GBP','CHF'].map(c=>`<option ${c===con.currency?'selected':''}>${c}</option>`).join('')}
           </select>
         </div>
-        <div class="ff" style="grid-column:span 2"><label>Vertragsnotizen</label>
+        <div class="ff" style="grid-column:span 2"><label>Contract Notes</label>
           <input class="ci" style="width:100%;color:var(--text)" value="${con.notes||''}" placeholder="z.B. Kündigungsfrist 3 Monate..."
             onchange="CONTRACT_DATA['${pn}'].notes=this.value">
         </div>
@@ -2869,7 +3023,7 @@ function renderContracts() {
   }
   document.getElementById('contracts-content').innerHTML = html || '<div class="alert alert-info">Keine Projekte vorhanden.</div>';
 }
-function saveContracts() { autoSave(); showToast('Verträge gespeichert ✓','ok'); }
+function saveContracts() { autoSave(); showToast('Contracts saved ✓','ok'); }
 
 // ══════════════════ IMPROVED USER MANAGEMENT ══════════════════
 
@@ -2947,7 +3101,7 @@ async function renderUsers(){
         <th style="text-align:left">Name / ID</th>
         <th style="text-align:left">Rolle</th>
         <th style="text-align:left">Projekt (TL)</th>
-        <th style="text-align:left">Erstellt</th>
+        <th style="text-align:left">Created</th>
         <th style="text-align:center">Aktionen</th>
       </tr></thead><tbody>
         ${users.map(u=>`<tr>
@@ -3028,10 +3182,10 @@ function renderMultiYear(){
   });
 
   let html = `<div class="card">
-    <div class="ct">Jahr-zu-Jahr Vergleich</div>
+    <div class="ct">Year-on-Year Comparison</div>
     <div class="cs">Alle erfassten Jahre · ↑↓ vs Vorjahr</div>
     <div class="tw"><table class="bt"><thead><tr>
-      <th style="text-align:left">Jahr</th>
+      <th style="text-align:left">Year</th>
       <th>Revenue (TRY)</th><th>vs Vorjahr</th>
       <th>Kosten (TRY)</th><th>vs Vorjahr</th>
       <th>GM (TRY)</th><th>GM %</th><th>vs Vorjahr</th>
@@ -3110,7 +3264,7 @@ function switchToYear(yr){
   loadYearData(yr);
   const el=document.getElementById('year-display');if(el)el.textContent=yr;
   recalcAll();
-  showToast(`Jahr ${yr} geladen ✓`,'ok');
+  showToast(`Year ${yr} geladen ✓`,'ok');
   SP('dashboard');
 }
 
@@ -3122,7 +3276,7 @@ function cloneYearBudget(){
   YEAR_DATA[targetYr].ACTUALS={};
   YEAR_DATA[targetYr].AUDIT_LOG=[];
   YEAR_DATA[targetYr].SLA_DATA={};
-  showToast(`${ACTIVE_YEAR} → ${targetYr} geklont ✓`,'ok');
+  showToast(`${ACTIVE_YEAR} → ${targetYr} cloned ✓`,'ok');
   autoSave();
   renderMultiYear();
 }
@@ -3148,7 +3302,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   updateLoginBanner();
   updateSBTopbarBtn();
   const st=document.getElementById('sb-status');
-  if(st&&SB_MODE)st.textContent='✓ Verbunden mit '+SB_URL;
+  if(st&&SB_MODE)st.textContent='✓ Connected to '+SB_URL;
 
   // ── Force-clear any token whose role may be stale ──
   // This ensures users always get a fresh profile on next load
