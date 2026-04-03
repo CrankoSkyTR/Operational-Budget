@@ -817,7 +817,7 @@ async function connectSB(){
   st.style.color='var(--text2)';st.textContent='⏳ Connecting…';
   try{
     // Test with a plain fetch — no SDK, no Headers object cloning
-    const res=await fetch(url+'/rest/v1/bpo_state?select=id&limit=1',{
+    const res=await fetch(url+'/rest/v1/bpo_users?select=id&limit=1',{
       headers:{'apikey':key,'Authorization':'Bearer '+key}
     });
     if(res.status===0)throw new Error('Cannot reach Supabase — check the URL');
@@ -862,11 +862,17 @@ async function sbLoad(){
   if(!SB_MODE)return false;
   try{
     const{data,error}=await sbSelect('bpo_state','id=eq.main');
-    if(error||!data||!data.length)return false;
+    if(error){console.warn('[BPO] sbLoad error:',error.message,error.code);return false;}
+    if(!data||!data.length){console.log('[BPO] No saved state yet — using defaults');return false;}
     const d=data[0].data;
-    if(d.PROJECTS)PROJECTS=d.PROJECTS;if(d.ASM)ASM=d.ASM;if(d.FX)FX=d.FX;
-    if(d.TARGETS)TARGETS=d.TARGETS;if(d.SCENARIOS)SCENARIOS=d.SCENARIOS;
-    if(d.ACTUALS)ACTUALS=d.ACTUALS;if(d.AUDIT_LOG)AUDIT_LOG=d.AUDIT_LOG;
+    console.log('[BPO] Loaded state keys:',Object.keys(d));
+    if(d.PROJECTS&&Object.keys(d.PROJECTS).length)PROJECTS=d.PROJECTS;
+    if(d.ASM)ASM=d.ASM;
+    if(d.FX&&d.FX.length===12)FX=d.FX;
+    if(d.TARGETS)TARGETS=d.TARGETS;
+    if(d.SCENARIOS&&d.SCENARIOS.length)SCENARIOS=d.SCENARIOS;
+    if(d.ACTUALS)ACTUALS=d.ACTUALS;
+    if(d.AUDIT_LOG)AUDIT_LOG=d.AUDIT_LOG;
     if(d.COMMENTS)COMMENTS=d.COMMENTS;
     if(d.SLA_DATA)SLA_DATA=d.SLA_DATA;
     if(d.CAP_DATA)CAP_DATA=d.CAP_DATA;
@@ -874,7 +880,7 @@ async function sbLoad(){
     if(d.ACTIVE_YEAR){ACTIVE_YEAR=d.ACTIVE_YEAR;const el=document.getElementById('year-display');if(el)el.textContent=ACTIVE_YEAR;}
     if(d.YEAR_DATA)YEAR_DATA=d.YEAR_DATA;
     return true;
-  }catch(e){console.warn('Load failed:',e);return false;}
+  }catch(e){console.warn('[BPO] Load failed:',e);return false;}
 }
 function autoSave(){if(SB_MODE)sbSave();}
 
@@ -986,12 +992,18 @@ let SCENARIOS=[
 let AUDIT_LOG=[];
 let COMMENTS=[];
 let ACTUALS={};// {projName: {m: {rev,cost}}}
+// ── Declared early — PT references ACTIVE_YEAR at parse time ──
+let ACTIVE_YEAR=2026;
+let YEAR_DATA={};
+let SLA_DATA={};
+let CAP_DATA={};
+let CONTRACT_DATA={};
 
 let PROJECTS={
-  'SALT Care':{id:'p0',color:'#4a6cf7',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH & WFO',invoicing:'Production Hours'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(9),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(1),salary:47250,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:Array(12).fill(5),salary:42250,bonus:0.07,isBuffer:false},{name:'Buffer DE',lang:'DE',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true},{name:'Buffer FR',lang:'FR',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'TL French',hc:1,salary:55000,bonus:0.07},{name:'Quality',hc:1,salary:60000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'Production Hours',rateEUR:Array(12).fill(135),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
-  'SALT RET':{id:'p1',color:'#8b5cf6',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(12),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(3),salary:47250,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'FTE',rateEUR:Array(12).fill(135),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
-  'SALT TLS':{id:'p2',color:'#00c896',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'ICM'},agents:[{name:'Swiss',lang:'CH',hc:[10,9,8,8,8,8,8,10,10,10,10,10],salary:45000,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:[6,6,6,6,6,6,6,5,5,5,5,5],salary:38400,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'ICM',rateEUR:Array(12).fill(135),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
-  'SALT OB':{id:'p3',color:'#f0a500',meta:{client:'SALT OB',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'ACQ',lang:'—',hc:Array(12).fill(12),salary:45000,bonus:0.07,isBuffer:false},{name:'Fiber',lang:'—',hc:[3,3,3,3,3,3,3,4,4,4,4,4],salary:45000,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'FTE',rateEUR:Array(12).fill(135),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT Care':{id:'p0',color:'#4a6cf7',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH & WFO',invoicing:'Production Hours'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(9),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(1),salary:47250,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:Array(12).fill(5),salary:42250,bonus:0.07,isBuffer:false},{name:'Buffer DE',lang:'DE',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true},{name:'Buffer FR',lang:'FR',hc:Array(12).fill(1),salary:42250,bonus:0.07,isBuffer:true}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'TL French',hc:1,salary:55000,bonus:0.07},{name:'Quality',hc:1,salary:60000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'Production Hours',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT RET':{id:'p1',color:'#8b5cf6',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'German',lang:'DE',hc:Array(12).fill(12),salary:42250,bonus:0.07,isBuffer:false},{name:'Swiss',lang:'CH',hc:Array(12).fill(3),salary:47250,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL German',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT TLS':{id:'p2',color:'#00c896',meta:{client:'SALT',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'ICM'},agents:[{name:'Swiss',lang:'CH',hc:[10,9,8,8,8,8,8,10,10,10,10,10],salary:45000,bonus:0.07,isBuffer:false},{name:'French',lang:'FR',hc:[6,6,6,6,6,6,6,5,5,5,5,5],salary:38400,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'ICM',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
+  'SALT OB':{id:'p3',color:'#f0a500',meta:{client:'SALT OB',location:'İzmir',director:'Kerim ATASEVER',opsMgr:'Murat Enrico Erdemesinli',workModel:'WFH',invoicing:'FTE'},agents:[{name:'ACQ',lang:'—',hc:Array(12).fill(12),salary:45000,bonus:0.07,isBuffer:false},{name:'Fiber',lang:'—',hc:[3,3,3,3,3,3,3,4,4,4,4,4],salary:45000,bonus:0.07,isBuffer:false}],mgmt:[{name:'TL',hc:2,salary:55000,bonus:0.07},{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],costs:{food:88.05,transport:745,it:500,other:300},invoiceModel:'FTE',rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),ftePriceEUR:Array(12).fill(3200),icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},overtimeH:Array(12).fill(0)},
 };
 
 // ══════════════════ CALC ══════════════════
@@ -1011,19 +1023,35 @@ function calcRevEUR(proj, m, billingAg, ov2) {
     return price * billingAg * boost;
   }
   if (model === 'ICM') {
-    // Incentive/Commission: base + performance bonus
+    // Incentive/Commission model
+    // Option A: base + % bonus on overperformance
+    // Option B: unitPrice × actual units achieved
     const cfg = proj.icmConfig || {};
-    const base    = cfg.baseEUR?.[m]       ?? 50000;
-    const bonusPct= cfg.bonusPct?.[m]      ?? 0.15;
-    const target  = cfg.targetUnits?.[m]   ?? 1000;
-    const actual  = cfg.actualUnits?.[m]   ?? 0;
+    const base      = cfg.baseEUR?.[m]      ?? 0;
+    const bonusPct  = cfg.bonusPct?.[m]     ?? 0.15;
+    const target    = cfg.targetUnits?.[m]  ?? 1000;
+    const actual    = cfg.actualUnits?.[m]  ?? 0;
+    const unitPrice = cfg.unitPriceEUR?.[m] ?? 0; // EUR per unit achieved
+    // If unitPrice set: revenue = unitPrice × actual units (+ base if any)
+    if (unitPrice > 0) {
+      return (base + unitPrice * actual) * boost;
+    }
+    // Otherwise: base + overperformance bonus
     const achieved = target > 0 ? actual / target : 0;
-    // Base always paid; bonus only if target exceeded
     const bonus = achieved > 1 ? (achieved - 1) * bonusPct * base : 0;
     return (base + bonus) * boost;
   }
-  // Default: Production Hours — rateEUR × prodDays × 8h × billing FTE
-  const rate = proj.rateEUR?.[m] ?? (proj.revEUR?.[m] ?? 135);
+  // Default: Production Hours
+  // Option A: rateEUR per hour × hours × FTE
+  // Option B: unitPriceEUR per transaction × estimated transactions
+  const rate = proj.rateEUR?.[m] ?? 135;
+  const unitPrice = proj.unitPriceEUR?.[m] ?? 0;
+  const unitsPerDay = proj.unitsPerDay?.[m] ?? 0;
+  if (unitPrice > 0 && unitsPerDay > 0) {
+    // Unit-based: price per transaction × units/day × prod days × FTE
+    return unitPrice * unitsPerDay * pd * billingAg * boost;
+  }
+  // Standard: rate × hours × FTE
   return rate * pd * 8 * billingAg * boost;
 }
 
@@ -1220,20 +1248,22 @@ function buildProjPage(pn){
   // ── Revenue config card — adapts per model ──
   let revConfigCard='';
   if(model==='Production Hours'){
-    revConfigCard=`<div class="card"><div class="ct">Revenue Configuration — Production Hours ${modelBadge}</div>
-      <div class="cs">Revenue = Rate (EUR/hr) × Productive Days × 8h × Billing FTE. Updates live on change.</div>
-      <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Avg/Annual</th></tr></thead><tbody>
-        <tr class="revr"><td>Rate (EUR/hr)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:58px" data-p="${pn}" data-field="rateEUR" data-mi="${mi}" value="${proj.rateEUR?.[mi]??135}" onchange="onRateChange(this)" type="number" min="0" step="0.5"></td>`).join('')}<td class="mn">${((proj.rateEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(1)}</td></tr>
-        <tr><td style="color:var(--text2);font-size:11px">Prod. Days</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.pd}</td>`).join('')}<td class="mn">${PROD_DAYS.reduce((s,v)=>s+v,0)}</td></tr>
+    revConfigCard=`<div class="card"><div class="ct">Revenue — Production Hours ${modelBadge}</div>
+      <div class="cs"><strong>Mode A — Stunden:</strong> Rate (EUR/Std) × Prod.Tage × 8h × FTE &nbsp;|&nbsp; <strong>Mode B — Einheiten:</strong> Stückpreis × Einh./Tag × Tage × FTE. Stückpreis &gt; 0 → Mode B aktiv.</div>
+      <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Zeile</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Ø / Gesamt</th></tr></thead><tbody>
+        <tr class="revr"><td>Rate (EUR/Std) — Mode A</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:55px" data-p="${pn}" data-field="rateEUR" data-mi="${mi}" value="${proj.rateEUR?.[mi]??135}" onchange="onRateChange(this)" type="number" min="0" step="0.5"></td>`).join('')}<td class="mn">${((proj.rateEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(2)} avg</td></tr>
+        <tr><td style="color:var(--teal)">Stückpreis (EUR/Einheit) — Mode B</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--teal);width:55px" data-p="${pn}" data-field="unitPriceEUR" data-mi="${mi}" value="${proj.unitPriceEUR?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="0.01"></td>`).join('')}<td class="mn">${((proj.unitPriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(3)} avg</td></tr>
+        <tr><td style="color:var(--teal)">Einheiten/Tag/FTE — Mode B</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--teal);width:55px" data-p="${pn}" data-field="unitsPerDay" data-mi="${mi}" value="${proj.unitsPerDay?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="1"></td>`).join('')}<td class="mn">${((proj.unitsPerDay||[]).reduce((s,v)=>s+v,0)/12).toFixed(0)} avg</td></tr>
+        <tr><td style="color:var(--text2);font-size:11px">Prod. Tage</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.pd}</td>`).join('')}<td class="mn">${PROD_DAYS.reduce((s,v)=>s+v,0)}</td></tr>
         <tr><td style="color:var(--text2);font-size:11px">FX (EUR→TRY)</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.fx.toFixed(2)}</td>`).join('')}<td class="mn">${(FX.reduce((s,v)=>s+v,0)/12).toFixed(2)}</td></tr>
         <tr class="revr"><td style="font-weight:700">Revenue (EUR)</td>${r.months.map(m=>`<td class="mn pos">${fmtEUR(m.revEUR)}</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtEUR(r.annual.revEUR)}</td></tr>
         <tr class="revr"><td style="font-weight:700">Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
       </tbody></table></div></div>`;
   }else if(model==='FTE'){
-    revConfigCard=`<div class="card"><div class="ct">Revenue Configuration — FTE ${modelBadge}</div>
-      <div class="cs">Revenue = Fixed Price (EUR) per billing FTE per month. Adjust per month or set uniform rate.</div>
-      <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Avg/Annual</th></tr></thead><tbody>
-        <tr class="revr"><td>FTE Price (EUR/head/mo)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:62px" data-p="${pn}" data-field="ftePriceEUR" data-mi="${mi}" value="${proj.ftePriceEUR?.[mi]??3200}" onchange="onRateChange(this)" type="number" min="0" step="50"></td>`).join('')}<td class="mn">${((proj.ftePriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(0)} avg</td></tr>
+    revConfigCard=`<div class="card"><div class="ct">Revenue — FTE ${modelBadge}</div>
+      <div class="cs">Revenue = Festpreis (EUR) × Billing FTE pro Monat. Preis pro Monat oder einheitlich setzen.</div>
+      <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Zeile</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Ø / Gesamt</th></tr></thead><tbody>
+        <tr class="revr"><td>FTE Preis (EUR/Kopf/Mo)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:62px" data-p="${pn}" data-field="ftePriceEUR" data-mi="${mi}" value="${proj.ftePriceEUR?.[mi]??3200}" onchange="onRateChange(this)" type="number" min="0" step="50"></td>`).join('')}<td class="mn">${((proj.ftePriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(0)} avg</td></tr>
         <tr><td style="color:var(--text2);font-size:11px">Billing FTE</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.billingAg}</td>`).join('')}<td class="mn">${r.annual.avgFTE} avg</td></tr>
         <tr><td style="color:var(--text2);font-size:11px">FX (EUR→TRY)</td>${r.months.map(m=>`<td class="mn" style="color:var(--text2)">${m.fx.toFixed(2)}</td>`).join('')}<td class="mn">${(FX.reduce((s,v)=>s+v,0)/12).toFixed(2)}</td></tr>
         <tr class="revr"><td style="font-weight:700">Revenue (EUR)</td>${r.months.map(m=>`<td class="mn pos">${fmtEUR(m.revEUR)}</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtEUR(r.annual.revEUR)}</td></tr>
@@ -1241,19 +1271,19 @@ function buildProjPage(pn){
       </tbody></table></div></div>`;
   }else if(model==='ICM'){
     const cfg=proj.icmConfig||{};
-    revConfigCard=`<div class="card"><div class="ct">Revenue Configuration — ICM (Incentive &amp; Commission) ${modelBadge}</div>
-      <div class="cs">Revenue = Base (EUR/mo) + Bonus. Bonus = bonusPct × (Actual ÷ Target − 1) × Base. No bonus if target not reached. Enter actual units achieved each month.</div>
-      <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Line</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Annual</th></tr></thead><tbody>
-        <tr><td>Base (EUR/month)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--blue);width:68px" data-p="${pn}" data-field="icm_baseEUR" data-mi="${mi}" value="${cfg.baseEUR?.[mi]??50000}" onchange="onRateChange(this)" type="number" min="0" step="1000"></td>`).join('')}<td class="mn">${fmtEUR((cfg.baseEUR||[]).reduce((s,v)=>s+v,0))}</td></tr>
-        <tr><td>Bonus % (of base)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--purple);width:46px" data-p="${pn}" data-field="icm_bonusPct" data-mi="${mi}" value="${((cfg.bonusPct?.[mi]??0.15)*100).toFixed(0)}" onchange="onRateChange(this)" type="number" min="0" max="200" step="1"></td>`).join('')}<td class="mn">${((cfg.bonusPct||[]).reduce((s,v)=>s+v,0)/12*100).toFixed(0)}% avg</td></tr>
-        <tr><td style="color:var(--gold)">Target Units</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--gold);width:62px" data-p="${pn}" data-field="icm_targetUnits" data-mi="${mi}" value="${cfg.targetUnits?.[mi]??1000}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.targetUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
-        <tr><td style="color:var(--green)">Actual Units Achieved</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:62px" data-p="${pn}" data-field="icm_actualUnits" data-mi="${mi}" value="${cfg.actualUnits?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.actualUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
-        <tr><td style="color:var(--text2);font-size:11px">Achievement %</td>${MONTHS.map((_,mi)=>{const t=cfg.targetUnits?.[mi]??1000;const a=cfg.actualUnits?.[mi]??0;const pct=t>0?a/t:0;return`<td class="mn ${vc(pct-1)}" style="font-size:11px">${(pct*100).toFixed(0)}%</td>`;}).join('')}<td></td></tr>
+    revConfigCard=`<div class="card"><div class="ct">Revenue — ICM ${modelBadge}</div>
+      <div class="cs"><strong>Mode A — Basis+Bonus:</strong> Basis + bonusPct×(Ist÷Soll−1)×Basis &nbsp;|&nbsp; <strong>Mode B — Stückpreis:</strong> Basis + Stückpreis×Ist-Einheiten. Stückpreis &gt; 0 → Mode B.</div>
+      <div class="tw"><table class="bt" style="min-width:900px"><thead><tr><th style="text-align:left">Zeile</th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>Gesamt</th></tr></thead><tbody>
+        <tr><td>Basis (EUR/Monat)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--blue);width:65px" data-p="${pn}" data-field="icm_baseEUR" data-mi="${mi}" value="${cfg.baseEUR?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="500"></td>`).join('')}<td class="mn">${fmtEUR((cfg.baseEUR||[]).reduce((s,v)=>s+v,0))}</td></tr>
+        <tr><td style="color:var(--teal)">Stückpreis (EUR/Einheit) — Mode B</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--teal);width:55px" data-p="${pn}" data-field="icm_unitPriceEUR" data-mi="${mi}" value="${cfg.unitPriceEUR?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="0.01"></td>`).join('')}<td class="mn">${((cfg.unitPriceEUR||[]).reduce((s,v)=>s+v,0)/12).toFixed(3)} avg</td></tr>
+        <tr><td>Bonus % von Basis — Mode A</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--purple);width:46px" data-p="${pn}" data-field="icm_bonusPct" data-mi="${mi}" value="${((cfg.bonusPct?.[mi]??0.15)*100).toFixed(0)}" onchange="onRateChange(this)" type="number" min="0" max="200" step="1"></td>`).join('')}<td class="mn">${((cfg.bonusPct||[]).reduce((s,v)=>s+v,0)/12*100).toFixed(0)}% avg</td></tr>
+        <tr><td style="color:var(--gold)">Soll-Einheiten</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--gold);width:62px" data-p="${pn}" data-field="icm_targetUnits" data-mi="${mi}" value="${cfg.targetUnits?.[mi]??1000}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.targetUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
+        <tr><td style="color:var(--green)">Ist-Einheiten (erreicht)</td>${MONTHS.map((_,mi)=>`<td><input class="ci" style="color:var(--green);width:62px" data-p="${pn}" data-field="icm_actualUnits" data-mi="${mi}" value="${cfg.actualUnits?.[mi]??0}" onchange="onRateChange(this)" type="number" min="0" step="10"></td>`).join('')}<td class="mn">${(cfg.actualUnits||[]).reduce((s,v)=>s+v,0)}</td></tr>
+        <tr><td style="color:var(--text2);font-size:11px">Zielerreichung %</td>${MONTHS.map((_,mi)=>{const t=cfg.targetUnits?.[mi]??1000;const a=cfg.actualUnits?.[mi]??0;const pct=t>0?a/t:0;return`<td class="mn ${vc(pct-1)}" style="font-size:11px">${(pct*100).toFixed(0)}%</td>`;}).join('')}<td></td></tr>
         <tr class="revr"><td style="font-weight:700">Revenue (EUR)</td>${r.months.map(m=>`<td class="mn pos">${fmtEUR(m.revEUR)}</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtEUR(r.annual.revEUR)}</td></tr>
         <tr class="revr"><td style="font-weight:700">Revenue (TRY)</td>${r.months.map(m=>`<td class="mn pos">${fmtK(m.revTRY)}₺</td>`).join('')}<td class="mn pos" style="font-weight:700">${fmtK(aR)}₺</td></tr>
       </tbody></table></div></div>`;
   }
-
   const hcRows=proj.agents.map((ag,i)=>`<tr style="${ag.isBuffer?'background:rgba(245,158,11,.04)':''}">
     <td>${lBadge(ag.lang)} ${ag.name}${ag.isBuffer?` <span style="background:rgba(245,158,11,.2);color:var(--amber);padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700;margin-left:4px">⚡ BUFFER</span>`:''}</td>
     ${MONTHS.map((_,m)=>`<td><input class="ci" ${ag.isBuffer?'style="color:var(--amber)"':''} data-p="${pn}" data-a="${i}" data-m="${m}" value="${ag.hc[m]}" onchange="onHC(this)" type="number" min="0"></td>`).join('')}
@@ -1837,9 +1867,11 @@ function saveProject(){
     PROJECTS[name]={id:'p'+Date.now(),color,meta,invoiceModel,
       agents:[],mgmt:[{name:'Ops Manager',hc:1,salary:80000,bonus:0.07}],
       costs:{food:88.05,transport:745,it:500,other:300},
-      rateEUR:Array(12).fill(135),
+      rateEUR:Array(12).fill(135),unitPriceEUR:Array(12).fill(0),unitsPerDay:Array(12).fill(0),
+      unitPriceEUR:Array(12).fill(0),
+      unitsPerDay:Array(12).fill(0),
       ftePriceEUR:Array(12).fill(3200),
-      icmConfig:{baseEUR:Array(12).fill(50000),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0)},
+      icmConfig:{baseEUR:Array(12).fill(0),bonusPct:Array(12).fill(0.15),targetUnits:Array(12).fill(1000),actualUnits:Array(12).fill(0),unitPriceEUR:Array(12).fill(0)},
       overtimeH:Array(12).fill(0)};
     addLog('Project Add',name,'info');showToast(name+' created ✓','ok');
   }
@@ -1945,6 +1977,16 @@ function onRateChange(el) {
     if (!proj.icmConfig) proj.icmConfig = {};
     if (!proj.icmConfig.targetUnits) proj.icmConfig.targetUnits = Array(12).fill(1000);
     proj.icmConfig.targetUnits[mi] = val;
+  } else if (field === 'unitPriceEUR') {
+    if (!proj.unitPriceEUR) proj.unitPriceEUR = Array(12).fill(0);
+    proj.unitPriceEUR[mi] = val;
+  } else if (field === 'unitsPerDay') {
+    if (!proj.unitsPerDay) proj.unitsPerDay = Array(12).fill(0);
+    proj.unitsPerDay[mi] = val;
+  } else if (field === 'icm_unitPriceEUR') {
+    if (!proj.icmConfig) proj.icmConfig = {};
+    if (!proj.icmConfig.unitPriceEUR) proj.icmConfig.unitPriceEUR = Array(12).fill(0);
+    proj.icmConfig.unitPriceEUR[mi] = val;
   } else if (field === 'icm_actualUnits') {
     if (!proj.icmConfig) proj.icmConfig = {};
     if (!proj.icmConfig.actualUnits) proj.icmConfig.actualUnits = Array(12).fill(0);
@@ -2251,60 +2293,6 @@ async function saveEditUser(){
   setTimeout(()=>{M('m-edit-user');renderUsers();},1200);
 }
 
-async function renderUsers(){
-  const el=document.getElementById('users-content');
-  if(!SB_MODE){el.innerHTML=`<div class="alert alert-warn">Supabase nicht verbunden.</div>`;return;}
-  el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:16px">Lade Benutzer…</div>';
-  try{
-    const{data:users,error}=await sbSelect('bpo_users','order=created_at.asc');
-    if(error)throw new Error(error.message);
-    const roleIcon={'Sr. Manager':'👔','Manager':'📋','Team Leader':'🎧','Administrator':'👔'};
-    const roleColor={'Sr. Manager':'var(--gold)','Manager':'var(--blue)','Team Leader':'var(--green)','Administrator':'var(--gold)'};
-    el.innerHTML=`<div class="card">
-      <div class="ct">Team Accounts (${users.length})</div>
-      <div class="cs">Alle Benutzer · Passwort-Reset über Supabase Dashboard → Authentication → Users</div>
-      <div class="tw"><table class="bt"><thead><tr>
-        <th style="text-align:left">Name</th>
-        <th style="text-align:left">Rolle</th>
-        <th style="text-align:left">Projekt (TL)</th>
-        <th style="text-align:left">Erstellt</th>
-        <th></th>
-      </tr></thead><tbody>
-        ${users.map(u=>`<tr>
-          <td>
-            <div style="font-weight:600;color:var(--text)">${u.name||'—'}</div>
-            <div style="font-size:11px;color:var(--text2)">${u.id.substring(0,12)}…</div>
-          </td>
-          <td>
-            <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:${(roleColor[u.role]||'var(--text2)').replace('var(','rgba(').replace('--gold)','212,146,10,.15)').replace('--blue)','74,108,247,.15)').replace('--green)','0,200,150,.15)')};color:${roleColor[u.role]||'var(--text2)'}">
-              ${roleIcon[u.role]||'👤'} ${u.role||'—'}
-            </span>
-          </td>
-          <td style="font-size:12px;color:var(--text2)">${u.assigned_project||'—'}</td>
-          <td style="font-size:11px;color:var(--text2)">${new Date(u.created_at).toLocaleDateString('de-DE')}</td>
-          <td style="display:flex;gap:5px">
-            ${u.id===ME?.id
-              ?`<span style="font-size:11px;color:var(--text2);padding:4px 8px">Du</span>`
-              :`<button class="btn btn-xs btn-ghost" onclick="openEditUser('${u.id}','${(u.name||'').replace(/'/g,"\\'")}','${u.role}','${u.assigned_project||''}')">✏ Edit</button>
-               <button class="btn btn-xs btn-danger" onclick="removeUser('${u.id}','${(u.name||u.id).replace(/'/g,"\\'")}')">✕</button>`
-            }
-          </td>
-        </tr>`).join('')}
-      </tbody></table></div>
-    </div>
-    <div class="card" style="margin-top:14px">
-      <div class="ct">Passwort Reset</div>
-      <div class="cs">Reset-Link per E-Mail senden</div>
-      <div style="display:flex;gap:8px;align-items:flex-end">
-        <div class="ff" style="flex:1"><label>E-Mail</label><input id="reset-em" type="email" placeholder="benutzer@firma.com"></div>
-        <button class="btn btn-outline btn-sm" onclick="sendReset()" style="margin-bottom:1px">Reset senden</button>
-      </div>
-    </div>`;
-  }catch(e){
-    el.innerHTML=`<div class="alert alert-danger">Fehler: ${e.message}</div>`;
-  }
-}
-
 async function changeUserRole(uid,role){
   if(!SB_MODE)return;
   const{error}=await sbPatch('bpo_users','id=eq.'+uid,{role});
@@ -2329,8 +2317,7 @@ async function sendReset(){
 }
 
 // ══════════════════ YEAR SYSTEM ══════════════════
-let ACTIVE_YEAR = 2026;
-let YEAR_DATA = {}; // { 2026: { PROJECTS, ASM, FX, TARGETS, ACTUALS, SLA_DATA, CAP_DATA, CONTRACT_DATA } }
+// ── Year system — variables declared at top of file ──
 
 function changeYear(delta) {
   // Save current year data first
@@ -2390,9 +2377,7 @@ function loadYearData(year) {
 
 // ══════════════════ BPO OPERATIONAL DATA ══════════════════
 // GDPR note: All metrics are TEAM-level aggregates — no individual identification
-let SLA_DATA = {}; // { projName: { months: [{aht,fcr,csat,attendance,occupancy,shrinkage}] } }
-let CAP_DATA = {}; // { projName: { shrinkagePct, occupancyTarget, ahtSec, callsPerDay } }
-let CONTRACT_DATA = {}; // { projName: { slaTarget, penaltyPct, bonusPct, bonusThreshold, currency, notes } }
+// ── BPO operational data — variables declared at top of file ──
 
 function initOperationalData() {
   for (const pn of Object.keys(PROJECTS)) {
@@ -2413,6 +2398,10 @@ function initOperationalData() {
 // ══════════════════ QUICK ENTRY ══════════════════
 function renderQuickEntry() {
   initOperationalData();
+  if(!PROJECTS||Object.keys(PROJECTS).length===0){
+    document.getElementById('qe-content').innerHTML='<div class="alert alert-info">Keine Projekte vorhanden. Bitte erst ein Projekt anlegen.</div>';
+    return;
+  }
   const all = calcAll();
   let html = '';
 
@@ -2712,7 +2701,7 @@ async function renderUsers(){
   if(!SB_MODE){el.innerHTML=`<div class="alert alert-warn">Supabase nicht verbunden.</div>`;return;}
   el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:16px">Lade Benutzer…</div>';
   try{
-    const{data:users,error}=await sbSelect('bpo_users','order=created_at.asc');
+    const{data:users,error}=await sbREST('GET','/rest/v1/bpo_users?select=*&order=created_at.asc');
     if(error)throw new Error(error.message);
     const roleIcon={'Sr. Manager':'👔','Manager':'📋','Team Leader':'🎧','Administrator':'👔'};
     const roleBg={'Sr. Manager':'rgba(240,165,0,.15)','Manager':'rgba(74,108,247,.15)','Team Leader':'rgba(0,200,150,.15)','Administrator':'rgba(240,165,0,.15)'};
